@@ -27,17 +27,18 @@ export async function bootstrap(): Promise<INestApplication> {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // Security
+  // Security (Allow Swagger and CDN assets)
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
       crossOriginEmbedderPolicy: false,
+      contentSecurityPolicy: false, // Allows Swagger UI CDN assets
     }),
   );
   app.use(cookieParser());
 
   // CORS
-  const corsOrigin = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000');
+  const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
   app.enableCors({
     origin: corsOrigin === '*' ? true : corsOrigin.includes(',') ? corsOrigin.split(',') : corsOrigin,
     credentials: true,
@@ -63,19 +64,32 @@ export async function bootstrap(): Promise<INestApplication> {
   // Global response transform interceptor
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Swagger (optional in production)
-  if (process.env.NODE_ENV !== 'production') {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('KDBA API')
-      .setDescription('KDBA - Khizar Digital Branding Agency API')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .addCookieAuth('refreshToken')
-      .build();
+  // Swagger Documentation Setup (Enabled in all environments including Vercel Production)
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('KDBA API')
+    .setDescription('KDBA - Khizar Digital Branding Agency API Documentation')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addCookieAuth('refreshToken')
+    .build();
 
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api/docs', app, document);
-  }
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+
+  const swaggerCustomOptions = {
+    customSiteTitle: 'KDBA API Documentation',
+    customCssUrl: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.css',
+    ],
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.js',
+    ],
+  };
+
+  // Mount Swagger on /api/docs and /docs
+  SwaggerModule.setup('api/docs', app, document, swaggerCustomOptions);
+  SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
 
   await app.init();
   cachedApp = app;
@@ -90,6 +104,7 @@ if (!process.env.VERCEL) {
     await app.listen(port);
     console.log(`🚀 KDBA API running locally on http://localhost:${port}`);
     console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
+    console.log(`📖 Swagger docs at http://localhost:${port}/docs`);
   });
 }
 
