@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kdba-postgres
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_USER: kdba
+      POSTGRES_PASSWORD: kdba_dev_password
+      POSTGRES_DB: kdba
+    volumes:
+      - kdba_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  kdba_postgres_data:
