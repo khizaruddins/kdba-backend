@@ -1,8 +1,20 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SectionsService } from './sections.service';
 import { CurrentUser, JwtPayload } from '../common/decorators';
-import { CreateSectionDto, UpdateSectionConfigDto, ReorderSectionsDto } from './dto/section.dto';
+import {
+  CreateSectionDto,
+  UpdateSectionConfigDto,
+  ReorderSectionsDto,
+} from './dto/section.dto';
 
 @ApiTags('Sections')
 @ApiBearerAuth()
@@ -12,10 +24,7 @@ export class SectionsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new section for a page' })
-  async create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateSectionDto,
-  ) {
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateSectionDto) {
     return this.sectionsService.create(user.tenantId, dto);
   }
 
@@ -30,10 +39,7 @@ export class SectionsController {
 
   @Patch(':id/toggle')
   @ApiOperation({ summary: 'Toggle section enabled/disabled' })
-  async toggle(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async toggle(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.sectionsService.toggle(id, user.tenantId);
   }
 
@@ -44,15 +50,16 @@ export class SectionsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateSectionConfigDto,
   ) {
-    return this.sectionsService.updateConfig(id, user.tenantId, dto?.config || {});
+    return this.sectionsService.updateConfig(
+      id,
+      user.tenantId,
+      dto?.config || {},
+    );
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a section' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.sectionsService.delete(id, user.tenantId);
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -32,7 +36,16 @@ export class SectionsService {
     return section;
   }
 
-  async create(tenantId: string, dto: { pageId: string; type: string; title: string; config?: Record<string, unknown>; sortOrder?: number }) {
+  async create(
+    tenantId: string,
+    dto: {
+      pageId: string;
+      type: string;
+      title: string;
+      config?: Record<string, unknown>;
+      sortOrder?: number;
+    },
+  ) {
     const page = await this.prisma.page.findUnique({
       where: { id: dto.pageId },
       include: {
@@ -63,7 +76,11 @@ export class SectionsService {
     });
   }
 
-  async updateConfig(id: string, tenantId: string, config: Record<string, unknown>) {
+  async updateConfig(
+    id: string,
+    tenantId: string,
+    config: Record<string, unknown>,
+  ) {
     await this.verifySectionOwnership(id, tenantId);
 
     return this.prisma.section.update({
@@ -81,7 +98,10 @@ export class SectionsService {
     });
   }
 
-  async reorder(tenantId: string, items: Array<{ id: string; sortOrder: number }>) {
+  async reorder(
+    tenantId: string,
+    items: Array<{ id: string; sortOrder: number }>,
+  ) {
     // Verify all sections belong to tenant
     for (const item of items) {
       await this.verifySectionOwnership(item.id, tenantId);

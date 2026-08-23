@@ -14,11 +14,7 @@ export class MediaService {
     private readonly storageService: LocalStorageService,
   ) {}
 
-  async upload(
-    tenantId: string,
-    file: Express.Multer.File,
-    altText?: string,
-  ) {
+  async upload(tenantId: string, file: Express.Multer.File, altText?: string) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }

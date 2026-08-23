@@ -7,7 +7,12 @@ import {
   Body,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { LeadsService } from './leads.service';
 import { UpdateLeadDto, LeadStatusEnum } from './dto/lead.dto';
 import { CurrentUser, JwtPayload } from '../common/decorators';
@@ -38,10 +43,7 @@ export class LeadsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a lead by ID' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.leadsService.findOne(id, user.tenantId);
   }
 
@@ -57,10 +59,7 @@ export class LeadsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a lead' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.leadsService.delete(id, user.tenantId);
   }
 }

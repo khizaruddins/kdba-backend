@@ -20,6 +20,8 @@ export class SuperAdminGuard implements CanActivate {
       return true;
     }
 
-    throw new ForbiddenException('Super Admin privileges required to access this resource');
+    throw new ForbiddenException(
+      'Super Admin privileges required to access this resource',
+    );
   }
 }

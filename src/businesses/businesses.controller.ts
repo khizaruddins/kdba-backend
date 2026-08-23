@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Body,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BusinessesService } from './businesses.service';
 import { CreateBusinessDto, UpdateBusinessDto } from './dto';
@@ -34,10 +27,7 @@ export class BusinessesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a business by ID' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.businessesService.findOne(id, user.tenantId);
   }
 

@@ -8,7 +8,12 @@ import {
   Body,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { PricingService } from './pricing.service';
 import { CreatePricingPlanDto, UpdatePricingPlanDto } from './dto/pricing.dto';
 import { CurrentUser, JwtPayload } from '../common/decorators';
@@ -35,18 +40,12 @@ export class PricingController {
     @CurrentUser() user: JwtPayload,
     @Query('activeOnly') activeOnly?: string,
   ) {
-    return this.pricingService.findAll(
-      user.tenantId,
-      activeOnly === 'true',
-    );
+    return this.pricingService.findAll(user.tenantId, activeOnly === 'true');
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a pricing plan by ID' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.pricingService.findOne(id, user.tenantId);
   }
 
@@ -62,10 +61,7 @@ export class PricingController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a pricing plan' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.pricingService.delete(id, user.tenantId);
   }
 }

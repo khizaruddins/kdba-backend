@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsOptional,
+} from 'class-validator';
 
 export class AdminRegisterDto {
   @ApiProperty({ example: 'superadmin@kdba.agency' })
@@ -24,7 +31,9 @@ export class AdminRegisterDto {
   @MaxLength(50)
   lastName: string;
 
-  @ApiProperty({ description: 'Master Super Admin Secret Key to authorize registration' })
+  @ApiProperty({
+    description: 'Master Super Admin Secret Key to authorize registration',
+  })
   @IsString()
   @IsNotEmpty()
   adminSecretKey: string;

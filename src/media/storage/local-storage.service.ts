@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { StorageService, UploadFileOptions, StorageResult } from './storage.interface';
+import {
+  StorageService,
+  UploadFileOptions,
+  StorageResult,
+} from './storage.interface';
 
 @Injectable()
 export class LocalStorageService implements StorageService {

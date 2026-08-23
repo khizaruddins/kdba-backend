@@ -42,7 +42,9 @@ export class CreatePricingPlanDto {
   @MaxLength(50)
   billingPeriod?: string;
 
-  @ApiProperty({ example: ['Unlimited revisions', '24/7 Support', 'Custom Domain'] })
+  @ApiProperty({
+    example: ['Unlimited revisions', '24/7 Support', 'Custom Domain'],
+  })
   @IsArray()
   @IsString({ each: true })
   features: string[];

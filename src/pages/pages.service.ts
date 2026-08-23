@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -48,7 +52,12 @@ export class PagesService {
     return page;
   }
 
-  async update(id: string, websiteId: string, tenantId: string, data: { title?: string; isActive?: boolean }) {
+  async update(
+    id: string,
+    websiteId: string,
+    tenantId: string,
+    data: { title?: string; isActive?: boolean },
+  ) {
     await this.findOne(id, websiteId, tenantId); // Verify ownership
 
     return this.prisma.page.update({

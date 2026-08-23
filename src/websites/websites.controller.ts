@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Body,
-  Param,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { WebsitesService } from './websites.service';
 import { CreateWebsiteDto, UpdateWebsiteDto } from './dto';
@@ -19,10 +12,7 @@ export class WebsitesController {
 
   @Post()
   @ApiOperation({ summary: 'Create a website from a template' })
-  async create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateWebsiteDto,
-  ) {
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateWebsiteDto) {
     return this.websitesService.create(user.tenantId, dto);
   }
 
@@ -34,10 +24,7 @@ export class WebsitesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a website with pages and sections' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.websitesService.findOne(id, user.tenantId);
   }
 

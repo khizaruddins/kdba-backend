@@ -8,7 +8,12 @@ import {
   Body,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
 import { CurrentUser, JwtPayload } from '../common/decorators';
@@ -21,10 +26,7 @@ export class ProductsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new product' })
-  async create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateProductDto,
-  ) {
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateProductDto) {
     return this.productsService.create(user.tenantId, dto);
   }
 
@@ -35,18 +37,12 @@ export class ProductsController {
     @CurrentUser() user: JwtPayload,
     @Query('activeOnly') activeOnly?: string,
   ) {
-    return this.productsService.findAll(
-      user.tenantId,
-      activeOnly === 'true',
-    );
+    return this.productsService.findAll(user.tenantId, activeOnly === 'true');
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a product by ID' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.productsService.findOne(id, user.tenantId);
   }
 
@@ -62,10 +58,7 @@ export class ProductsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a product' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.productsService.delete(id, user.tenantId);
   }
 }

@@ -23,18 +23,26 @@ async function runE2ETest() {
   const { user, tenant, accessToken } = registerRes.data.data;
   console.log('   ✅ User Registered:', user.id, user.email);
   console.log('   ✅ Tenant Created:', tenant.id, tenant.slug);
-  console.log('   ✅ Access Token Issued:', accessToken ? 'YES (JWT valid)' : 'NO');
+  console.log(
+    '   ✅ Access Token Issued:',
+    accessToken ? 'YES (JWT valid)' : 'NO',
+  );
 
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
   // 3. Browse Templates
   console.log('\n3. Fetching Seeded Templates...');
-  const templatesRes = await axios.get(`${API_BASE}/templates`, { headers: authHeaders });
+  const templatesRes = await axios.get(`${API_BASE}/templates`, {
+    headers: authHeaders,
+  });
   const templates = templatesRes.data.data;
   console.log(`   ✅ Found ${templates.length} Active Templates:`);
-  templates.forEach((t: any) => console.log(`      - [${t.category}] ${t.name} (Slug: ${t.slug})`));
+  templates.forEach((t: any) =>
+    console.log(`      - [${t.category}] ${t.name} (Slug: ${t.slug})`),
+  );
 
-  const apexTemplate = templates.find((t: any) => t.slug === 'apex-corporate') || templates[0];
+  const apexTemplate =
+    templates.find((t: any) => t.slug === 'apex-corporate') || templates[0];
 
   // 4. Create Business Profile
   console.log('\n4. Creating Business Profile...');
@@ -72,26 +80,37 @@ async function runE2ETest() {
   console.log('   ✅ Website Created:', website.id, website.slug);
   console.log(`   ✅ Pages Cloned: ${website.pages.length} pages`);
   website.pages.forEach((p: any) => {
-    console.log(`      • Page: ${p.title} (${p.slug}) with ${p.sections.length} sections`);
+    console.log(
+      `      • Page: ${p.title} (${p.slug}) with ${p.sections.length} sections`,
+    );
   });
 
   // 6. Edit Hero Section in Draft
-  const homePage = website.pages.find((p: any) => p.slug === '/') || website.pages[0];
-  const heroSection = homePage.sections.find((s: any) => s.type === 'HERO') || homePage.sections[1];
+  const homePage =
+    website.pages.find((p: any) => p.slug === '/') || website.pages[0];
+  const heroSection =
+    homePage.sections.find((s: any) => s.type === 'HERO') ||
+    homePage.sections[1];
 
-  console.log(`\n6. Customizing Hero Section Draft Config (${heroSection.id})...`);
+  console.log(
+    `\n6. Customizing Hero Section Draft Config (${heroSection.id})...`,
+  );
   const updatedHero = await axios.patch(
     `${API_BASE}/sections/${heroSection.id}`,
     {
       config: {
         ...heroSection.draftConfig,
         headline: 'Next-Gen Strategic Advisory & Enterprise Intelligence',
-        subheadline: 'Custom tailored solutions for Fortune 500 executives and private equity leaders.',
+        subheadline:
+          'Custom tailored solutions for Fortune 500 executives and private equity leaders.',
       },
     },
     { headers: authHeaders },
   );
-  console.log('   ✅ Section Draft Config Updated:', updatedHero.data.data.draftConfig.headline);
+  console.log(
+    '   ✅ Section Draft Config Updated:',
+    updatedHero.data.data.draftConfig.headline,
+  );
 
   // 7. Create Products / Services in Catalog
   console.log('\n7. Adding Products to Catalog...');
@@ -109,7 +128,11 @@ async function runE2ETest() {
     },
     { headers: authHeaders },
   );
-  console.log('   ✅ Product Created:', prodRes.data.data.name, `$${prodRes.data.data.price}`);
+  console.log(
+    '   ✅ Product Created:',
+    prodRes.data.data.name,
+    `$${prodRes.data.data.price}`,
+  );
 
   // 8. Create Pricing Retainer
   console.log('\n8. Adding Pricing Plan...');
@@ -121,14 +144,22 @@ async function runE2ETest() {
       price: 8500.0,
       currency: 'USD',
       billingPeriod: 'month',
-      features: ['Weekly Executive Briefing', 'Direct Line to Managing Partner', 'Annual Strategy Summit'],
+      features: [
+        'Weekly Executive Briefing',
+        'Direct Line to Managing Partner',
+        'Annual Strategy Summit',
+      ],
       isRecommended: true,
       ctaText: 'Start Retainer',
       ctaUrl: '#contact',
     },
     { headers: authHeaders },
   );
-  console.log('   ✅ Pricing Plan Created:', planRes.data.data.name, `$${planRes.data.data.price}/mo`);
+  console.log(
+    '   ✅ Pricing Plan Created:',
+    planRes.data.data.name,
+    `$${planRes.data.data.price}/mo`,
+  );
 
   // 9. Publish Website (Draft -> Live Promotion)
   console.log(`\n9. Publishing Website (${website.id})...`);
@@ -141,40 +172,63 @@ async function runE2ETest() {
   console.log('   ✅ Published At:', publishRes.data.data.publishedAt);
 
   // 10. Public Site Resolution (Public unauthenticated visitor)
-  console.log(`\n10. Fetching Public Published Site (/public/sites/${website.slug})...`);
+  console.log(
+    `\n10. Fetching Public Published Site (/public/sites/${website.slug})...`,
+  );
   const publicRes = await axios.get(`${API_BASE}/public/sites/${website.slug}`);
   const publicData = publicRes.data.data;
   console.log('   ✅ Public Tenant:', publicData.tenant.name);
   console.log('   ✅ Public Website Name:', publicData.website.name);
-  console.log(`   ✅ Public Pages: ${publicData.website.pages.length} pages available`);
-  console.log(`   ✅ Public Products: ${publicData.products.length} active products`);
-  console.log(`   ✅ Public Pricing Plans: ${publicData.pricingPlans.length} plans`);
+  console.log(
+    `   ✅ Public Pages: ${publicData.website.pages.length} pages available`,
+  );
+  console.log(
+    `   ✅ Public Products: ${publicData.products.length} active products`,
+  );
+  console.log(
+    `   ✅ Public Pricing Plans: ${publicData.pricingPlans.length} plans`,
+  );
 
   // Verify the updated draft was promoted to live
-  const publicHero = publicData.website.pages[0].sections.find((s: any) => s.type === 'HERO');
-  console.log('   ✅ Live Published Hero Headline:', publicHero?.config?.headline);
+  const publicHero = publicData.website.pages[0].sections.find(
+    (s: any) => s.type === 'HERO',
+  );
+  console.log(
+    '   ✅ Live Published Hero Headline:',
+    publicHero?.config?.headline,
+  );
 
   // 11. Submit Public Lead Inquiry
   console.log('\n11. Submitting Public Contact Form Inquiry...');
-  const leadSubmitRes = await axios.post(`${API_BASE}/public/sites/${website.slug}/contact`, {
-    name: 'Sarah Connor',
-    email: 'sarah@skynet-resistance.org',
-    phone: '+1 (555) 999-8888',
-    message: 'We are seeking an urgent institutional advisory consultation on AI strategy.',
-    source: 'website_contact_form',
-  });
+  const leadSubmitRes = await axios.post(
+    `${API_BASE}/public/sites/${website.slug}/contact`,
+    {
+      name: 'Sarah Connor',
+      email: 'sarah@skynet-resistance.org',
+      phone: '+1 (555) 999-8888',
+      message:
+        'We are seeking an urgent institutional advisory consultation on AI strategy.',
+      source: 'website_contact_form',
+    },
+  );
   console.log('   ✅ Lead Submission Result:', leadSubmitRes.data.data);
 
   // 12. Fetch Leads in CRM (Authenticated Tenant)
   console.log('\n12. Fetching Inbound Leads in CRM...');
-  const leadsRes = await axios.get(`${API_BASE}/leads`, { headers: authHeaders });
+  const leadsRes = await axios.get(`${API_BASE}/leads`, {
+    headers: authHeaders,
+  });
   const allLeads = leadsRes.data.data;
   console.log(`   ✅ Total Leads Captured in CRM: ${allLeads.length}`);
   const capturedLead = allLeads[0];
-  console.log(`      • Lead: ${capturedLead.name} (${capturedLead.email}) - Status: ${capturedLead.status}`);
+  console.log(
+    `      • Lead: ${capturedLead.name} (${capturedLead.email}) - Status: ${capturedLead.status}`,
+  );
 
   // 13. Update Lead Status to QUALIFIED
-  console.log(`\n13. Updating Lead Status to QUALIFIED (${capturedLead.id})...`);
+  console.log(
+    `\n13. Updating Lead Status to QUALIFIED (${capturedLead.id})...`,
+  );
   const leadUpdateRes = await axios.patch(
     `${API_BASE}/leads/${capturedLead.id}`,
     { status: 'QUALIFIED' },
@@ -184,7 +238,9 @@ async function runE2ETest() {
 
   // 14. Verify Lead Metrics / Stats
   console.log('\n14. Verifying CRM Metrics...');
-  const statsRes = await axios.get(`${API_BASE}/leads/stats`, { headers: authHeaders });
+  const statsRes = await axios.get(`${API_BASE}/leads/stats`, {
+    headers: authHeaders,
+  });
   console.log('   ✅ CRM Metrics:', statsRes.data.data);
 
   console.log('\n🎉 ALL 14 END-TO-END VERIFICATION CHECKS PASSED PERFECTLY!\n');

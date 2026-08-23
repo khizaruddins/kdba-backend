@@ -32,7 +32,10 @@ export class AdminGovernanceController {
   // ─── PLATFORM METRICS & FINANCIAL REVENUE ───────────────────────────────────
 
   @Get('overview')
-  @ApiOperation({ summary: 'Get total platform earnings, MRR, active tenants, and revenue trend' })
+  @ApiOperation({
+    summary:
+      'Get total platform earnings, MRR, active tenants, and revenue trend',
+  })
   async getOverview() {
     return this.adminService.getOverview();
   }
@@ -40,7 +43,9 @@ export class AdminGovernanceController {
   // ─── TENANTS GOVERNANCE ─────────────────────────────────────────────────────
 
   @Get('tenants')
-  @ApiOperation({ summary: 'List all platform tenants with search, status, and spend' })
+  @ApiOperation({
+    summary: 'List all platform tenants with search, status, and spend',
+  })
   async getTenants(
     @Query('search') search?: string,
     @Query('status') status?: TenantStatus,
@@ -51,7 +56,10 @@ export class AdminGovernanceController {
   }
 
   @Get('tenants/:id')
-  @ApiOperation({ summary: 'Get full tenant details (users, sites, businesses, subscriptions, bills)' })
+  @ApiOperation({
+    summary:
+      'Get full tenant details (users, sites, businesses, subscriptions, bills)',
+  })
   async getTenantDetails(@Param('id') id: string) {
     return this.adminService.getTenantDetails(id);
   }
@@ -123,7 +131,10 @@ export class AdminGovernanceController {
   // ─── PAYMENT TRANSACTIONS LEDGER ────────────────────────────────────────────
 
   @Get('transactions')
-  @ApiOperation({ summary: 'Live ledger of all incoming payment transactions and platform earnings' })
+  @ApiOperation({
+    summary:
+      'Live ledger of all incoming payment transactions and platform earnings',
+  })
   async getTransactions() {
     return this.adminService.getTransactions();
   }

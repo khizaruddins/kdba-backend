@@ -18,7 +18,11 @@ import {
   UpdateSubscriptionDto,
   CreatePlanDto,
 } from './dto/admin-governance.dto';
-import { TenantStatus, InvoiceStatus, SubscriptionStatus } from '@prisma/client';
+import {
+  TenantStatus,
+  InvoiceStatus,
+  SubscriptionStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -45,7 +49,9 @@ export class AdminService {
 
     if (existing) {
       if (existing.isSuperAdmin) {
-        throw new ConflictException('Super admin with this email already exists');
+        throw new ConflictException(
+          'Super admin with this email already exists',
+        );
       }
       // Upgrade existing user
       const updated = await this.prisma.user.update({
@@ -76,7 +82,9 @@ export class AdminService {
     });
 
     if (!user || !user.isSuperAdmin || !user.isActive) {
-      throw new UnauthorizedException('Invalid admin credentials or unauthorized account');
+      throw new UnauthorizedException(
+        'Invalid admin credentials or unauthorized account',
+      );
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
@@ -236,7 +244,10 @@ export class AdminService {
     });
 
     // 12-Month Revenue Breakdown
-    const monthlyTrendMap: Record<string, { month: string; revenue: number; transactions: number }> = {};
+    const monthlyTrendMap: Record<
+      string,
+      { month: string; revenue: number; transactions: number }
+    > = {};
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -295,7 +306,12 @@ export class AdminService {
 
   // ─── TENANTS GOVERNANCE ───────────────────────────────────────────────────────
 
-  async getTenants(query?: { search?: string; status?: TenantStatus; page?: number; limit?: number }) {
+  async getTenants(query?: {
+    search?: string;
+    status?: TenantStatus;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Math.max(Number(query?.page) || 1, 1);
     const limit = Math.min(Number(query?.limit) || 20, 100);
     const skip = (page - 1) * limit;
@@ -328,7 +344,11 @@ export class AdminService {
         include: {
           members: {
             where: { role: 'OWNER' },
-            include: { user: { select: { email: true, firstName: true, lastName: true } } },
+            include: {
+              user: {
+                select: { email: true, firstName: true, lastName: true },
+              },
+            },
             take: 1,
           },
           subscriptions: {
@@ -336,7 +356,9 @@ export class AdminService {
             include: { plan: true },
             take: 1,
           },
-          websites: { select: { id: true, name: true, slug: true, status: true } },
+          websites: {
+            select: { id: true, name: true, slug: true, status: true },
+          },
           businesses: { select: { id: true, name: true } },
           payments: {
             where: { status: 'SUCCESS' },
@@ -349,7 +371,10 @@ export class AdminService {
     const items = tenants.map((t) => {
       const owner = t.members[0]?.user;
       const sub = t.subscriptions[0];
-      const totalPaid = t.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+      const totalPaid = t.payments.reduce(
+        (acc, p) => acc + Number(p.amount),
+        0,
+      );
 
       return {
         id: t.id,
@@ -367,14 +392,18 @@ export class AdminService {
           : null,
         plan: sub
           ? {
-              name: sub.status === 'TRIALING' ? `${sub.plan.name} (30-Day Free Trial)` : sub.plan.name,
+              name:
+                sub.status === 'TRIALING'
+                  ? `${sub.plan.name} (30-Day Free Trial)`
+                  : sub.plan.name,
               amount: Number(sub.amount),
               billingCycle: sub.billingCycle,
               status: sub.status,
             }
           : { name: 'Free / Unassigned', amount: 0, status: 'NONE' },
         websitesCount: t.websites.length,
-        liveWebsitesCount: t.websites.filter((w) => w.status === 'PUBLISHED').length,
+        liveWebsitesCount: t.websites.filter((w) => w.status === 'PUBLISHED')
+          .length,
         businessesCount: t.businesses.length,
         totalRevenueContributed: totalPaid,
       };
@@ -450,7 +479,9 @@ export class AdminService {
       where: { id },
       data: {
         status: dto.status,
-        blockedReason: isBlocking ? dto.reason || 'Administrative action' : null,
+        blockedReason: isBlocking
+          ? dto.reason || 'Administrative action'
+          : null,
         blockedAt: isBlocking ? new Date() : null,
       },
     });
@@ -479,7 +510,9 @@ export class AdminService {
   }
 
   async updateSubscription(id: string, dto: UpdateSubscriptionDto) {
-    const sub = await this.prisma.tenantSubscription.findUnique({ where: { id } });
+    const sub = await this.prisma.tenantSubscription.findUnique({
+      where: { id },
+    });
     if (!sub) throw new NotFoundException('Subscription not found');
 
     return this.prisma.tenantSubscription.update({
@@ -489,7 +522,9 @@ export class AdminService {
         ...(dto.status && { status: dto.status }),
         ...(dto.billingCycle && { billingCycle: dto.billingCycle }),
         ...(dto.amount !== undefined && { amount: dto.amount }),
-        ...(dto.currentPeriodEnd && { currentPeriodEnd: new Date(dto.currentPeriodEnd) }),
+        ...(dto.currentPeriodEnd && {
+          currentPeriodEnd: new Date(dto.currentPeriodEnd),
+        }),
       },
       include: { plan: true, tenant: true },
     });
@@ -516,13 +551,17 @@ export class AdminService {
   }
 
   async createInvoice(dto: CreateInvoiceDto) {
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: dto.tenantId } });
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: dto.tenantId },
+    });
     if (!tenant) throw new NotFoundException('Tenant not found');
 
     const invoiceCount = await this.prisma.invoice.count();
     const invoiceNumber = `INV-${new Date().getFullYear()}-${(invoiceCount + 1).toString().padStart(4, '0')}`;
 
-    const dueDate = dto.dueDate ? new Date(dto.dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const dueDate = dto.dueDate
+      ? new Date(dto.dueDate)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     const invoice = await this.prisma.invoice.create({
       data: {
@@ -535,7 +574,11 @@ export class AdminService {
         dueDate,
         paymentMethod: dto.paymentMethod || 'MANUAL',
         lineItems: dto.lineItems || [
-          { description: 'KDBA Platform Services', amount: dto.amount, quantity: 1 },
+          {
+            description: 'KDBA Platform Services',
+            amount: dto.amount,
+            quantity: 1,
+          },
         ],
         notes: dto.notes || null,
       },

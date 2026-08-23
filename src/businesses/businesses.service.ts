@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBusinessDto, UpdateBusinessDto } from './dto';
 
@@ -80,8 +81,12 @@ export class BusinessesService {
         ...(dto.country !== undefined && { country: dto.country }),
         ...(dto.zipCode !== undefined && { zipCode: dto.zipCode }),
         ...(dto.website !== undefined && { website: dto.website }),
-        ...(dto.socialMedia !== undefined && { socialMedia: dto.socialMedia as object }),
-        ...(dto.businessHours !== undefined && { businessHours: dto.businessHours as object }),
+        ...(dto.socialMedia !== undefined && {
+          socialMedia: dto.socialMedia,
+        }),
+        ...(dto.businessHours !== undefined && {
+          businessHours: dto.businessHours as Prisma.InputJsonValue,
+        }),
       },
     });
   }
@@ -94,7 +99,10 @@ export class BusinessesService {
       .substring(0, 60);
   }
 
-  private async ensureUniqueSlug(tenantId: string, slug: string): Promise<string> {
+  private async ensureUniqueSlug(
+    tenantId: string,
+    slug: string,
+  ): Promise<string> {
     const existing = await this.prisma.business.findUnique({
       where: { tenantId_slug: { tenantId, slug } },
     });

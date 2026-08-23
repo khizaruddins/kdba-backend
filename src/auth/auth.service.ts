@@ -10,7 +10,12 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto';
 import { JwtPayload } from '../common/decorators';
 
 @Injectable()
@@ -265,7 +270,14 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private sanitizeUser(user: { id: string; email: string; firstName: string; lastName: string; avatarUrl: string | null; createdAt: Date }) {
+  private sanitizeUser(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl: string | null;
+    createdAt: Date;
+  }) {
     return {
       id: user.id,
       email: user.email,

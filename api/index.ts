@@ -1,35 +1,30 @@
-import 'reflect-metadata';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { Express } from 'express';
+import { bootstrap } from '../src/main';
 
-let bootstrapFn: any = null;
+let handler: Express | null = null;
 
-async function getBootstrap() {
-  if (bootstrapFn) return bootstrapFn;
+export default async function vercelHandler(
+  req: VercelRequest,
+  res: VercelResponse,
+): Promise<void> {
   try {
-    const distModule = require('../dist/src/main');
-    bootstrapFn = distModule.bootstrap;
-  } catch {
-    const srcModule = require('../src/main');
-    bootstrapFn = srcModule.bootstrap;
-  }
-  return bootstrapFn;
-}
-
-export default async function handler(req: any, res: any) {
-  try {
-    const bootstrap = await getBootstrap();
-    const app = await bootstrap();
-    const server = app.getHttpAdapter().getInstance();
-    return server(req, res);
-  } catch (error: any) {
-    console.error('Vercel Serverless Bootstrap Error:', error);
-    if (res && typeof res.status === 'function') {
-      return res.status(500).json({
-        success: false,
-        error: 'Vercel Serverless Initialization Error',
-        message: error?.message || String(error),
-        hint: 'Verify that DATABASE_URL is set in Vercel Environment Variables',
-      });
+    if (!handler) {
+      const app = await bootstrap();
+      handler = app.getHttpAdapter().getInstance() as Express;
     }
-    throw error;
+
+    handler(req, res);
+  } catch (error: unknown) {
+    console.error('❌ Vercel Serverless Initialization Error:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Vercel Serverless Initialization Error',
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Unknown serverless initialization error',
+    });
   }
 }

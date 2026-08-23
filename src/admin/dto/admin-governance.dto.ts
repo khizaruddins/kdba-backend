@@ -9,7 +9,11 @@ import {
   IsArray,
   IsObject,
 } from 'class-validator';
-import { TenantStatus, SubscriptionStatus, InvoiceStatus } from '@prisma/client';
+import {
+  TenantStatus,
+  SubscriptionStatus,
+  InvoiceStatus,
+} from '@prisma/client';
 
 export class UpdateTenantStatusDto {
   @ApiProperty({ enum: TenantStatus, example: TenantStatus.BLOCKED })
@@ -59,7 +63,11 @@ export class CreateInvoiceDto {
   @IsOptional()
   paymentMethod?: string;
 
-  @ApiPropertyOptional({ example: [{ description: 'Custom Design Retainer', amount: 79.0, quantity: 1 }] })
+  @ApiPropertyOptional({
+    example: [
+      { description: 'Custom Design Retainer', amount: 79.0, quantity: 1 },
+    ],
+  })
   @IsArray()
   @IsOptional()
   lineItems?: Array<{ description: string; amount: number; quantity?: number }>;

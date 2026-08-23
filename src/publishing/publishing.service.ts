@@ -124,8 +124,14 @@ export class PublishingService {
         include: {
           tenant: {
             include: {
-              products: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
-              pricingPlans: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
+              products: {
+                where: { isActive: true },
+                orderBy: { sortOrder: 'asc' },
+              },
+              pricingPlans: {
+                where: { isActive: true },
+                orderBy: { sortOrder: 'asc' },
+              },
             },
           },
           business: true,
@@ -147,11 +153,16 @@ export class PublishingService {
         throw new NotFoundException('Website not found');
       }
 
-      if (website.tenant.status === 'BLOCKED' || website.tenant.status === 'SUSPENDED') {
+      if (
+        website.tenant.status === 'BLOCKED' ||
+        website.tenant.status === 'SUSPENDED'
+      ) {
         return {
           isBlocked: true,
           tenantStatus: website.tenant.status,
-          blockedReason: website.tenant.blockedReason || 'This website has been suspended by the platform administrator.',
+          blockedReason:
+            website.tenant.blockedReason ||
+            'This website has been suspended by the platform administrator.',
           blockedAt: website.tenant.blockedAt || website.tenant.updatedAt,
           tenant: {
             name: website.tenant.name,
@@ -173,7 +184,9 @@ export class PublishingService {
       return {
         isBlocked: true,
         tenantStatus: tenant.status,
-        blockedReason: tenant.blockedReason || 'This website has been suspended by the platform administrator.',
+        blockedReason:
+          tenant.blockedReason ||
+          'This website has been suspended by the platform administrator.',
         blockedAt: tenant.blockedAt || tenant.updatedAt,
         tenant: {
           name: tenant.name,

@@ -2,9 +2,9 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateWebsiteDto, UpdateWebsiteDto } from './dto';
 
@@ -160,10 +160,14 @@ export class WebsitesService {
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.theme !== undefined && { theme: dto.theme as object }),
+        ...(dto.theme !== undefined && {
+          theme: dto.theme as Prisma.InputJsonValue,
+        }),
         ...(dto.favicon !== undefined && { favicon: dto.favicon }),
         ...(dto.seoTitle !== undefined && { seoTitle: dto.seoTitle }),
-        ...(dto.seoDescription !== undefined && { seoDescription: dto.seoDescription }),
+        ...(dto.seoDescription !== undefined && {
+          seoDescription: dto.seoDescription,
+        }),
       },
       include: {
         pages: {
@@ -184,7 +188,10 @@ export class WebsitesService {
       .substring(0, 60);
   }
 
-  private async ensureUniqueSlug(tenantId: string, slug: string): Promise<string> {
+  private async ensureUniqueSlug(
+    tenantId: string,
+    slug: string,
+  ): Promise<string> {
     const existing = await this.prisma.website.findUnique({
       where: { tenantId_slug: { tenantId, slug } },
     });

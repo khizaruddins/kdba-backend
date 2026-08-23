@@ -65,11 +65,15 @@ export class PricingService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.price !== undefined && { price: dto.price }),
         ...(dto.currency !== undefined && { currency: dto.currency }),
-        ...(dto.billingPeriod !== undefined && { billingPeriod: dto.billingPeriod }),
+        ...(dto.billingPeriod !== undefined && {
+          billingPeriod: dto.billingPeriod,
+        }),
         ...(dto.features !== undefined && { features: dto.features }),
         ...(dto.ctaText !== undefined && { ctaText: dto.ctaText }),
         ...(dto.ctaUrl !== undefined && { ctaUrl: dto.ctaUrl }),
-        ...(dto.isRecommended !== undefined && { isRecommended: dto.isRecommended }),
+        ...(dto.isRecommended !== undefined && {
+          isRecommended: dto.isRecommended,
+        }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
       },

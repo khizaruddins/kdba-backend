@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PublishingService } from './publishing.service';
 import { CreateLeadDto } from '../leads/dto/lead.dto';
@@ -18,10 +12,7 @@ export class PublishingController {
   @Post('websites/:id/publish')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Publish website (promote draft to live)' })
-  async publish(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async publish(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.publishingService.publish(id, user.tenantId);
   }
 
@@ -35,10 +26,7 @@ export class PublishingController {
   @Post('public/sites/:slug/contact')
   @Public()
   @ApiOperation({ summary: 'Submit contact form for public website' })
-  async submitContact(
-    @Param('slug') slug: string,
-    @Body() dto: CreateLeadDto,
-  ) {
+  async submitContact(@Param('slug') slug: string, @Body() dto: CreateLeadDto) {
     return this.publishingService.submitContact(slug, dto);
   }
 }

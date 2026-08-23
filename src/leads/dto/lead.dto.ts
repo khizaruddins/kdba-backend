@@ -34,7 +34,9 @@ export class CreateLeadDto {
   @MaxLength(30)
   phone?: string;
 
-  @ApiPropertyOptional({ example: 'I would like to inquire about your services.' })
+  @ApiPropertyOptional({
+    example: 'I would like to inquire about your services.',
+  })
   @IsString()
   @IsOptional()
   @MaxLength(3000)

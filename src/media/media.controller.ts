@@ -10,7 +10,13 @@ import {
   Res,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiBody,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import * as fs from 'fs';
@@ -54,20 +60,14 @@ export class MediaController {
   @Get(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get media details' })
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.mediaService.findOne(id, user.tenantId);
   }
 
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete a media item' })
-  async delete(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.mediaService.delete(id, user.tenantId);
   }
 
