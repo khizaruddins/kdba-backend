@@ -32,7 +32,7 @@ export async function bootstrap(): Promise<INestApplication> {
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
       crossOriginEmbedderPolicy: false,
-      contentSecurityPolicy: false, // Allows Swagger UI CDN assets
+      contentSecurityPolicy: false,
     }),
   );
   app.use(cookieParser());
@@ -64,7 +64,7 @@ export async function bootstrap(): Promise<INestApplication> {
   // Global response transform interceptor
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Swagger Documentation Setup (Enabled in all environments including Vercel Production)
+  // Swagger Documentation Setup
   const swaggerConfig = new DocumentBuilder()
     .setTitle('KDBA API')
     .setDescription('KDBA - Khizar Digital Branding Agency API Documentation')
@@ -87,7 +87,6 @@ export async function bootstrap(): Promise<INestApplication> {
     ],
   };
 
-  // Mount Swagger on /api/docs and /docs
   SwaggerModule.setup('api/docs', app, document, swaggerCustomOptions);
   SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
 
@@ -96,8 +95,9 @@ export async function bootstrap(): Promise<INestApplication> {
   return app;
 }
 
-// If running in local standalone dev mode (npm run start:dev)
-if (!process.env.VERCEL) {
+// Only listen when executed directly as main script (e.g. local npm run start:dev)
+// NEVER listen when imported by serverless handlers (Vercel)
+if (require.main === module || (!process.env.VERCEL && process.env.NODE_ENV !== 'production')) {
   bootstrap().then(async (app) => {
     const configService = app.get(ConfigService);
     const port = configService.get<number>('PORT', 4000);
@@ -106,10 +106,4 @@ if (!process.env.VERCEL) {
     console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
     console.log(`📖 Swagger docs at http://localhost:${port}/docs`);
   });
-}
-
-// Vercel Serverless Function Handler
-export default async function handler(req: Request, res: Response) {
-  await bootstrap();
-  server(req, res);
 }
