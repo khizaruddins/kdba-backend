@@ -1,52 +1,69 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, INestApplication } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import express, { Express, Request, Response } from 'express';
 
-const server: Express = express();
-let cachedApp: INestApplication | null = null;
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
 
-export async function bootstrap(): Promise<INestApplication> {
-  if (cachedApp) {
-    return cachedApp;
-  }
-
-  const app = await NestFactory.create(
-    AppModule,
-    new ExpressAdapter(server),
-  );
   const configService = app.get(ConfigService);
 
-  // Global prefix
+  // ---------------------------------------------------------------------------
+  // Global API Prefix
+  // ---------------------------------------------------------------------------
+
   app.setGlobalPrefix('api/v1');
 
-  // Security (Allow Swagger and CDN assets)
+  // ---------------------------------------------------------------------------
+  // Security Headers
+  // ---------------------------------------------------------------------------
+
   app.use(
     helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginResourcePolicy: {
+        policy: 'cross-origin',
+      },
       crossOriginEmbedderPolicy: false,
       contentSecurityPolicy: false,
     }),
   );
+
+  // ---------------------------------------------------------------------------
+  // Cookie Parser
+  // ---------------------------------------------------------------------------
+
   app.use(cookieParser());
 
+  // ---------------------------------------------------------------------------
   // CORS
+  // ---------------------------------------------------------------------------
+
   const corsOrigin = configService.get<string>('CORS_ORIGIN', '*');
+
+  const allowedOrigins =
+    corsOrigin === '*'
+      ? true
+      : corsOrigin.includes(',')
+        ? corsOrigin.split(',').map((origin) => origin.trim())
+        : corsOrigin.trim();
+
   app.enableCors({
-    origin: corsOrigin === '*' ? true : corsOrigin.includes(',') ? corsOrigin.split(',') : corsOrigin,
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Global validation pipe
+  // ---------------------------------------------------------------------------
+  // Global Validation
+  // ---------------------------------------------------------------------------
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -58,52 +75,76 @@ export async function bootstrap(): Promise<INestApplication> {
     }),
   );
 
-  // Global exception filter
+  // ---------------------------------------------------------------------------
+  // Global Exception Filter
+  // ---------------------------------------------------------------------------
+
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Global response transform interceptor
+  // ---------------------------------------------------------------------------
+  // Global Response Interceptor
+  // ---------------------------------------------------------------------------
+
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  // Swagger Documentation Setup
+  // ---------------------------------------------------------------------------
+  // Swagger
+  // ---------------------------------------------------------------------------
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('KDBA API')
     .setDescription('KDBA - Khizar Digital Branding Agency API Documentation')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addCookieAuth('refreshToken')
+    .setVersion('1.0.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Enter JWT access token',
+        in: 'header',
+      },
+      'access-token',
+    )
+    .addCookieAuth('refreshToken', {
+      type: 'apiKey',
+      in: 'cookie',
+      name: 'refreshToken',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  const swaggerCustomOptions = {
+  SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'KDBA API Documentation',
-    customCssUrl: [
+
+    customCssUrl:
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
-      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.css',
-    ],
+
     customJs: [
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.min.js',
       'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.min.js',
     ],
-  };
 
-  SwaggerModule.setup('api/docs', app, document, swaggerCustomOptions);
-  SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
-
-  await app.init();
-  cachedApp = app;
-  return app;
-}
-
-// Only listen when executed directly as main script (e.g. local npm run start:dev)
-// NEVER listen when imported by serverless handlers (Vercel)
-if (require.main === module || (!process.env.VERCEL && process.env.NODE_ENV !== 'production')) {
-  bootstrap().then(async (app) => {
-    const configService = app.get(ConfigService);
-    const port = configService.get<number>('PORT', 4000);
-    await app.listen(port);
-    console.log(`🚀 KDBA API running locally on http://localhost:${port}`);
-    console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
-    console.log(`📖 Swagger docs at http://localhost:${port}/docs`);
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      filter: true,
+      docExpansion: 'none',
+    },
   });
+
+  // ---------------------------------------------------------------------------
+  // Start Application
+  // ---------------------------------------------------------------------------
+
+  const port = configService.get<number>('PORT', 4000);
+
+  await app.listen(port);
+
+  console.log(`🚀 KDBA API running on port ${port}`);
+
+  console.log(`📖 Swagger docs: http://localhost:${port}/docs`);
 }
+
+bootstrap();
