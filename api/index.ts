@@ -4,10 +4,13 @@ import { bootstrap } from '../src/main';
 
 let cachedServer: Express | null = null;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(
+  req: VercelRequest,
+  res: VercelResponse,
+): Promise<void> {
   if (!cachedServer) {
     const app = await bootstrap();
     cachedServer = app.getHttpAdapter().getInstance() as Express;
   }
-  return cachedServer(req, res);
+  cachedServer(req, res);
 }
