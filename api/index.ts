@@ -10,7 +10,12 @@ export default async function handler(
 ): Promise<void> {
   if (!cachedServer) {
     const app = await bootstrap();
-    cachedServer = app.getHttpAdapter().getInstance() as Express;
+    const expressApp = app.getHttpAdapter().getInstance() as Express;
+    
+    // Crucial for Vercel's proxy environment
+    expressApp.set('trust proxy', 1);
+    
+    cachedServer = expressApp;
   }
-  cachedServer(req, res);
+  return cachedServer(req, res);
 }
