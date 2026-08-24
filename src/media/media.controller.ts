@@ -19,7 +19,6 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import * as fs from 'fs';
 import { MediaService } from './media.service';
 import { CurrentUser, JwtPayload, Public } from '../common/decorators';
 
@@ -75,12 +74,10 @@ export class MediaController {
   @Public()
   @ApiOperation({ summary: 'Serve public media file' })
   async serveFile(@Param('key') key: string, @Res() res: Response) {
-    const filePath = this.mediaService.getFilePath(key);
-    if (!fs.existsSync(filePath)) {
+    const url = await this.mediaService.getUrl(key);
+    if (!url) {
       throw new NotFoundException('File not found');
     }
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    return res.sendFile(filePath);
+    return res.redirect(url);
   }
 }

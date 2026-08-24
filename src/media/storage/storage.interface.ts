@@ -16,3 +16,5 @@ export interface StorageService {
   delete(storageKey: string): Promise<boolean>;
   getUrl(storageKey: string): Promise<string>;
 }
+
+export const STORAGE_SERVICE = 'STORAGE_SERVICE';

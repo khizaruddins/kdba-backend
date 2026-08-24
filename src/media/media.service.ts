@@ -5,13 +5,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LocalStorageService } from './storage/local-storage.service';
+import { SupabaseStorageService } from './storage/supabase-storage.service';
 
 @Injectable()
 export class MediaService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly storageService: LocalStorageService,
+    private readonly storageService: SupabaseStorageService,
   ) {}
 
   async upload(tenantId: string, file: Express.Multer.File, altText?: string) {
@@ -73,7 +73,7 @@ export class MediaService {
     });
   }
 
-  getFilePath(storageKey: string): string {
-    return this.storageService.getFilePath(storageKey);
+  async getUrl(storageKey: string): Promise<string> {
+    return this.storageService.getUrl(storageKey);
   }
 }
