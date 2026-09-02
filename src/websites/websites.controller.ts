@@ -15,6 +15,8 @@ import {
   UpdateWebsiteDto,
   SaveWebsiteDocumentDto,
   MutateWebsiteDocumentDto,
+  ApplyDocumentOperationsDto,
+  DuplicateWebsiteDto,
   CreateVersionDto,
   RestoreVersionDto,
 } from './dto';
@@ -25,6 +27,12 @@ import { CurrentUser, JwtPayload } from '../common/decorators';
 @Controller('websites')
 export class WebsitesController {
   constructor(private readonly websitesService: WebsitesService) {}
+
+  @Get('components/registry')
+  @ApiOperation({ summary: 'Get visual builder Component Registry manifest (capabilities, schemas, allowed children, default props/styles)' })
+  async getComponentRegistry() {
+    return this.websitesService.getComponentRegistry();
+  }
 
   @Post()
   @ApiOperation({ summary: 'Create a website from a template' })
@@ -60,10 +68,10 @@ export class WebsitesController {
     return this.websitesService.delete(id, user.tenantId);
   }
 
-  // ─── V2 CANONICAL DOCUMENT APIS ─────────────────────────────────────────────
+  // ─── V3 CANONICAL DOCUMENT & VISUAL BUILDER APIS ─────────────────────────────
 
   @Get(':id/document')
-  @ApiOperation({ summary: 'Get canonical WebsiteDocument (Draft state) with revision metadata' })
+  @ApiOperation({ summary: 'Get canonical WebsiteDocument V3.0 (Draft state) with revision metadata and document hash' })
   async getDocument(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.websitesService.getDocument(id, user.tenantId);
   }
@@ -80,8 +88,30 @@ export class WebsitesController {
     return this.websitesService.updateDocument(id, user.tenantId, dto);
   }
 
+  @Post(':id/document/operations')
+  @ApiOperation({ summary: 'Apply fine-grained visual document operations transactionally with revision verification' })
+  @ApiResponse({ status: 200, description: 'Operations applied and document revision incremented' })
+  @ApiResponse({ status: 409, description: 'Document revision conflict (DOCUMENT_REVISION_CONFLICT)' })
+  async applyOperations(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ApplyDocumentOperationsDto,
+  ) {
+    return this.websitesService.applyOperations(id, user.tenantId, dto);
+  }
+
+  @Post(':id/document/batch')
+  @ApiOperation({ summary: 'Execute transactional batch of document operations (alias for /operations)' })
+  async applyBatchOperations(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ApplyDocumentOperationsDto,
+  ) {
+    return this.websitesService.applyOperations(id, user.tenantId, dto);
+  }
+
   @Patch(':id/document/mutations')
-  @ApiOperation({ summary: 'Apply a granular mutation to draft document (theme, business, section props, variant, reorder, etc.)' })
+  @ApiOperation({ summary: 'Legacy V2 mutation endpoint (backward compatibility)' })
   async mutateDocument(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
@@ -102,7 +132,17 @@ export class WebsitesController {
     return this.websitesService.publish(id, user.tenantId);
   }
 
-  // ─── V2 VERSIONING & HISTORY APIS ───────────────────────────────────────────
+  @Post(':id/duplicate')
+  @ApiOperation({ summary: 'Duplicate an entire website with fresh unique IDs for all nested nodes' })
+  async duplicate(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: DuplicateWebsiteDto,
+  ) {
+    return this.websitesService.duplicateWebsite(id, user.tenantId, dto);
+  }
+
+  // ─── VERSIONING & HISTORY APIS ──────────────────────────────────────────────
 
   @Get(':id/versions')
   @ApiOperation({ summary: 'List historical version snapshots for website' })

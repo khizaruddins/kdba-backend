@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
@@ -10,14 +11,22 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DocumentValidatorService } from '../documents/services/document-validator.service';
 import { DocumentMigrationService } from '../documents/services/document-migration.service';
+import { TreeOperationsService } from '../documents/services/tree-operations.service';
 import { TemplatesService } from '../templates/templates.service';
 import {
   CreateWebsiteDto,
   UpdateWebsiteDto,
   SaveWebsiteDocumentDto,
   MutateWebsiteDocumentDto,
+  ApplyDocumentOperationsDto,
+  DuplicateWebsiteDto,
 } from './dto';
-import { WebsiteDocument } from '../documents/types/document.types';
+import {
+  WebsiteDocumentV3,
+  DocumentOperationsResult,
+} from '../documents/types/document.types';
+import { getComponentManifest } from '../documents/contracts/component-registry';
+import { DocumentOperationsPayloadSchema } from '../documents/schemas/v3/document-v3.schema';
 
 @Injectable()
 export class WebsitesService {
@@ -27,6 +36,7 @@ export class WebsitesService {
     private readonly prisma: PrismaService,
     private readonly validator: DocumentValidatorService,
     private readonly migrationService: DocumentMigrationService,
+    private readonly treeOperations: TreeOperationsService,
     private readonly templatesService: TemplatesService,
   ) {}
 
@@ -61,7 +71,7 @@ export class WebsitesService {
   }
 
   /**
-   * Get single website with draftDocument and relations.
+   * Get single website with relations.
    */
   async findOne(id: string, tenantId: string) {
     const website = await this.prisma.website.findUnique({
@@ -88,22 +98,24 @@ export class WebsitesService {
       throw new ForbiddenException('Access denied');
     }
 
-    // Auto-migrate legacy website to V2 document if draftDocument is missing
-    if (!website.draftDocument) {
-      this.logger.log(`Migrating legacy website ${website.id} to V2 WebsiteDocument on read`);
-      const migratedDoc = this.migrationService.migrateLegacyRelationalWebsite(
-        website,
-        website.pages,
-        website.business,
-        website.template,
-      );
+    // Auto-migrate legacy or V2 website to V3 document if needed
+    if (!website.draftDocument || (website.draftDocument as any).schemaVersion !== '3.0') {
+      this.logger.log(`Migrating website ${website.id} to V3 WebsiteDocument on read`);
+      const migratedDoc = website.draftDocument
+        ? this.migrationService.migrateWebsiteDocument(website.draftDocument)
+        : this.migrationService.migrateLegacyRelationalWebsite(
+            website,
+            website.pages,
+            website.business,
+            website.template,
+          );
 
       await this.prisma.website.update({
         where: { id: website.id },
         data: {
           draftDocument: migratedDoc as any,
           publishedDocument: website.status === 'PUBLISHED' ? (migratedDoc as any) : null,
-          schemaVersion: '2.0',
+          schemaVersion: '3.0',
         },
       });
 
@@ -118,26 +130,35 @@ export class WebsitesService {
   }
 
   /**
-   * Get canonical WebsiteDocument (Draft state) with revision metadata.
+   * Get canonical V3 WebsiteDocument (Draft state) with revision metadata and hash.
    */
   async getDocument(id: string, tenantId: string) {
     const website = await this.findOne(id, tenantId);
 
-    const document = (website.draftDocument ||
-      this.migrationService.migrateLegacyRelationalWebsite(
-        website,
-        website.pages,
-        website.business,
-        website.template,
-      )) as WebsiteDocument;
+    const document: WebsiteDocumentV3 = (
+      (website.draftDocument as any)?.schemaVersion === '3.0'
+        ? website.draftDocument
+        : this.migrationService.migrateWebsiteDocument(
+            website.draftDocument ||
+              this.migrationService.migrateLegacyRelationalWebsite(
+                website,
+                website.pages,
+                website.business,
+                website.template,
+              ),
+          )
+    ) as WebsiteDocumentV3;
+
+    const documentHash = this.validator.computeDocumentHash(document);
 
     return {
       websiteId: website.id,
       name: website.name,
       slug: website.slug,
       status: website.status,
-      schemaVersion: website.schemaVersion || '2.0',
+      schemaVersion: '3.0',
       revision: website.documentRevision || 1,
+      documentHash,
       publishedAt: website.publishedAt,
       updatedAt: website.updatedAt,
       document,
@@ -145,31 +166,70 @@ export class WebsitesService {
   }
 
   /**
-   * Save full WebsiteDocument draft with schema validation & optimistic concurrency check.
+   * Apply fine-grained document operations transactionally to draft document.
+   * Handles optimistic concurrency checking, circular ancestry validation, child constraints,
+   * schema re-validation, and atomic persistence.
    */
-  async updateDocument(
+  async applyOperations(
     id: string,
     tenantId: string,
-    dto: SaveWebsiteDocumentDto,
-  ) {
+    dto: ApplyDocumentOperationsDto,
+  ): Promise<DocumentOperationsResult> {
     const website = await this.findOne(id, tenantId);
 
     // Optimistic concurrency control
     if (
-      dto.expectedRevision !== undefined &&
-      dto.expectedRevision !== website.documentRevision
+      dto.baseRevision !== undefined &&
+      dto.baseRevision !== website.documentRevision
     ) {
       throw new ConflictException({
-        message: 'Concurrency conflict: document has been modified in another session',
+        statusCode: 409,
+        error: 'DOCUMENT_REVISION_CONFLICT',
+        message: 'Document revision conflict: document was modified in another session',
         currentRevision: website.documentRevision,
-        expectedRevision: dto.expectedRevision,
+        baseRevision: dto.baseRevision,
       });
     }
 
-    // Strict schema validation & normalization
-    const validatedDoc = this.validator.validate(dto.document);
+    // Validate payload shape
+    const parsedPayload = DocumentOperationsPayloadSchema.safeParse(dto);
+    if (!parsedPayload.success) {
+      throw new BadRequestException({
+        message: 'Invalid document operations payload',
+        errors: parsedPayload.error.issues.map((i) => ({
+          path: i.path.join('.'),
+          message: i.message,
+        })),
+      });
+    }
+
+    // Resolve current document
+    const currentDoc: WebsiteDocumentV3 = (
+      (website.draftDocument as any)?.schemaVersion === '3.0'
+        ? website.draftDocument
+        : this.migrationService.migrateWebsiteDocument(
+            website.draftDocument ||
+              this.migrationService.migrateLegacyRelationalWebsite(
+                website,
+                website.pages,
+                website.business,
+                website.template,
+              ),
+          )
+    ) as WebsiteDocumentV3;
+
+    // Apply operations in memory via TreeOperationsService
+    const mutatedDoc = this.treeOperations.applyOperations(
+      currentDoc,
+      dto.operations,
+    );
+
+    // Validate and normalize resulting V3 document
+    const validatedDoc = this.validator.validateV3(mutatedDoc);
+    const documentHash = this.validator.computeDocumentHash(validatedDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
 
+    // Save to database
     const updated = await this.prisma.website.update({
       where: { id },
       data: {
@@ -185,15 +245,71 @@ export class WebsitesService {
 
     return {
       websiteId: updated.id,
-      schemaVersion: updated.schemaVersion,
       revision: updated.documentRevision,
+      schemaVersion: '3.0',
+      documentHash,
+      updatedAt: updated.updatedAt,
+      document: validatedDoc,
+      operationsApplied: dto.operations.length,
+    };
+  }
+
+  /**
+   * Save full WebsiteDocument draft with schema validation & optimistic concurrency check.
+   */
+  async updateDocument(
+    id: string,
+    tenantId: string,
+    dto: SaveWebsiteDocumentDto,
+  ) {
+    const website = await this.findOne(id, tenantId);
+
+    // Optimistic concurrency control
+    const expected = dto.expectedRevision ?? dto.baseRevision;
+    if (
+      expected !== undefined &&
+      expected !== website.documentRevision
+    ) {
+      throw new ConflictException({
+        statusCode: 409,
+        error: 'DOCUMENT_REVISION_CONFLICT',
+        message: 'Concurrency conflict: document has been modified in another session',
+        currentRevision: website.documentRevision,
+        expectedRevision: expected,
+      });
+    }
+
+    // Auto-migrate if saving a V2 doc, or strictly validate V3 doc
+    const validatedDoc = this.migrationService.migrateWebsiteDocument(dto.document);
+    const documentHash = this.validator.computeDocumentHash(validatedDoc);
+    const nextRevision = (website.documentRevision || 1) + 1;
+
+    const updated = await this.prisma.website.update({
+      where: { id },
+      data: {
+        draftDocument: validatedDoc as any,
+        theme: validatedDoc.theme as any,
+        documentRevision: nextRevision,
+        schemaVersion: '3.0',
+        name: validatedDoc.site.name || website.name,
+        seoTitle: validatedDoc.seo.metaTitle || website.seoTitle,
+        seoDescription: validatedDoc.seo.metaDescription || website.seoDescription,
+        favicon: validatedDoc.site.favicon || website.favicon,
+      },
+    });
+
+    return {
+      websiteId: updated.id,
+      schemaVersion: '3.0',
+      revision: updated.documentRevision,
+      documentHash,
       updatedAt: updated.updatedAt,
       document: validatedDoc,
     };
   }
 
   /**
-   * Apply granular mutation to draft document (e.g. update section props, theme, reorder).
+   * Apply legacy granular mutation (V2 backward compatibility).
    */
   async mutateDocument(
     id: string,
@@ -201,7 +317,7 @@ export class WebsitesService {
     dto: MutateWebsiteDocumentDto,
   ) {
     const website = await this.findOne(id, tenantId);
-    const currentDoc = (website.draftDocument as unknown as WebsiteDocument) ||
+    const currentDoc = (website.draftDocument as any) ||
       this.migrationService.migrateLegacyRelationalWebsite(
         website,
         website.pages,
@@ -209,24 +325,27 @@ export class WebsitesService {
         website.template,
       );
 
-    // Apply mutation & re-validate
     const updatedDoc = this.validator.applyMutation(currentDoc, dto);
+    const v3Doc = this.migrationService.migrateWebsiteDocument(updatedDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
+    const documentHash = this.validator.computeDocumentHash(v3Doc);
 
     const updated = await this.prisma.website.update({
       where: { id },
       data: {
-        draftDocument: updatedDoc as any,
-        theme: updatedDoc.theme as any,
+        draftDocument: v3Doc as any,
+        theme: v3Doc.theme as any,
         documentRevision: nextRevision,
+        schemaVersion: '3.0',
       },
     });
 
     return {
       websiteId: updated.id,
       revision: updated.documentRevision,
+      documentHash,
       updatedAt: updated.updatedAt,
-      document: updatedDoc,
+      document: v3Doc,
     };
   }
 
@@ -235,13 +354,19 @@ export class WebsitesService {
    */
   async getPreview(id: string, tenantId: string) {
     const website = await this.findOne(id, tenantId);
-    const document = (website.draftDocument ||
-      this.migrationService.migrateLegacyRelationalWebsite(
-        website,
-        website.pages,
-        website.business,
-        website.template,
-      )) as WebsiteDocument;
+    const document = (
+      (website.draftDocument as any)?.schemaVersion === '3.0'
+        ? website.draftDocument
+        : this.migrationService.migrateWebsiteDocument(
+            website.draftDocument ||
+              this.migrationService.migrateLegacyRelationalWebsite(
+                website,
+                website.pages,
+                website.business,
+                website.template,
+              ),
+          )
+    ) as WebsiteDocumentV3;
 
     return {
       preview: true,
@@ -258,35 +383,41 @@ export class WebsitesService {
 
   /**
    * Transactionally publish a website:
-   * 1. Validates draft document.
-   * 2. Normalizes document.
+   * 1. Validates and normalizes draft document to V3.
+   * 2. Sanitizes against XSS and unsafe protocols.
    * 3. Creates snapshot in WebsiteVersion table (reason: 'publish').
    * 4. Copies draftDocument -> publishedDocument.
    * 5. Sets status = 'PUBLISHED', publishedAt = now().
-   * 6. Syncs relational pages/sections for backward compatibility.
    */
   async publish(websiteId: string, tenantId: string) {
     const website = await this.findOne(websiteId, tenantId);
 
-    const draftDoc = (website.draftDocument ||
-      this.migrationService.migrateLegacyRelationalWebsite(
-        website,
-        website.pages,
-        website.business,
-        website.template,
-      )) as WebsiteDocument;
+    const draftDoc = (
+      (website.draftDocument as any)?.schemaVersion === '3.0'
+        ? website.draftDocument
+        : this.migrationService.migrateWebsiteDocument(
+            website.draftDocument ||
+              this.migrationService.migrateLegacyRelationalWebsite(
+                website,
+                website.pages,
+                website.business,
+                website.template,
+              ),
+          )
+    ) as WebsiteDocumentV3;
 
-    // Validate before publish
-    const validatedDoc = this.validator.validate(draftDoc);
+    // Strict V3 schema validation & normalization
+    const validatedDoc = this.validator.validateV3(draftDoc);
+    const documentHash = this.validator.computeDocumentHash(validatedDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Create version snapshot
+      // 1. Create immutable version snapshot
       const version = await tx.websiteVersion.create({
         data: {
           websiteId: website.id,
           document: validatedDoc as any,
-          schemaVersion: '2.0',
+          schemaVersion: '3.0',
           revision: nextRevision,
           reason: 'publish',
         },
@@ -301,28 +432,13 @@ export class WebsitesService {
           status: 'PUBLISHED',
           publishedAt: new Date(),
           documentRevision: nextRevision,
+          schemaVersion: '3.0',
         },
         include: {
           business: true,
           template: true,
         },
       });
-
-      // 3. Sync relational section configs for backward compatibility in parallel
-      const sectionUpdates = (website.pages || []).flatMap((p) =>
-        (p.sections || []).map((s) =>
-          tx.section.update({
-            where: { id: s.id },
-            data: {
-              publishedConfig: (s.draftConfig as object) || {},
-            },
-          }),
-        ),
-      );
-
-      if (sectionUpdates.length > 0) {
-        await Promise.all(sectionUpdates);
-      }
 
       return {
         id: published.id,
@@ -331,12 +447,88 @@ export class WebsitesService {
         status: published.status,
         publishedAt: published.publishedAt,
         documentRevision: published.documentRevision,
+        documentHash,
         versionId: version.id,
         document: validatedDoc,
       };
     }, {
       maxWait: 15000,
       timeout: 30000,
+    });
+  }
+
+  /**
+   * Duplicate an entire website: clones website metadata and creates a complete
+   * replica of the V3 document with fresh node IDs.
+   */
+  async duplicateWebsite(
+    websiteId: string,
+    tenantId: string,
+    dto: DuplicateWebsiteDto,
+  ) {
+    const sourceWebsite = await this.findOne(websiteId, tenantId);
+
+    const sourceDoc: WebsiteDocumentV3 = (
+      (sourceWebsite.draftDocument as any)?.schemaVersion === '3.0'
+        ? sourceWebsite.draftDocument
+        : this.migrationService.migrateWebsiteDocument(
+            sourceWebsite.draftDocument ||
+              this.migrationService.migrateLegacyRelationalWebsite(
+                sourceWebsite,
+                sourceWebsite.pages,
+                sourceWebsite.business,
+                sourceWebsite.template,
+              ),
+          )
+    ) as WebsiteDocumentV3;
+
+    // Deep clone document & assign fresh node IDs
+    const clonedDoc: WebsiteDocumentV3 = JSON.parse(JSON.stringify(sourceDoc));
+    const newName = dto.name || `Copy of ${sourceWebsite.name}`;
+    clonedDoc.site.name = newName;
+
+    clonedDoc.pages.forEach((page) => {
+      page.id = `page_${crypto.randomBytes(3).toString('hex')}`;
+      page.root = this.treeOperations.cloneSubtreeWithNewIds(page.root);
+    });
+
+    const validatedDoc = this.validator.validateV3(clonedDoc);
+
+    const baseSlug = newName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 60);
+    const uniqueSlug = await this.ensureUniqueSlug(tenantId, baseSlug);
+
+    return this.prisma.website.create({
+      data: {
+        tenantId,
+        businessId: dto.businessId || sourceWebsite.businessId,
+        templateId: sourceWebsite.templateId,
+        name: newName,
+        slug: uniqueSlug,
+        status: 'DRAFT',
+        theme: validatedDoc.theme as any,
+        draftDocument: validatedDoc as any,
+        publishedDocument: Prisma.JsonNull,
+        schemaVersion: '3.0',
+        documentRevision: 1,
+        seoTitle: sourceWebsite.seoTitle,
+        seoDescription: sourceWebsite.seoDescription,
+        versions: {
+          create: {
+            document: validatedDoc as any,
+            schemaVersion: '3.0',
+            revision: 1,
+            reason: `cloned-from-${sourceWebsite.id}`,
+          },
+        },
+      },
+      include: {
+        business: true,
+        template: true,
+      },
     });
   }
 
@@ -371,21 +563,27 @@ export class WebsitesService {
     userId?: string,
   ) {
     const website = await this.findOne(websiteId, tenantId);
-    const draftDoc = (website.draftDocument ||
-      this.migrationService.migrateLegacyRelationalWebsite(
-        website,
-        website.pages,
-        website.business,
-        website.template,
-      )) as WebsiteDocument;
+    const draftDoc = (
+      (website.draftDocument as any)?.schemaVersion === '3.0'
+        ? website.draftDocument
+        : this.migrationService.migrateWebsiteDocument(
+            website.draftDocument ||
+              this.migrationService.migrateLegacyRelationalWebsite(
+                website,
+                website.pages,
+                website.business,
+                website.template,
+              ),
+          )
+    ) as WebsiteDocumentV3;
 
-    const validatedDoc = this.validator.validate(draftDoc);
+    const validatedDoc = this.validator.validateV3(draftDoc);
 
     return this.prisma.websiteVersion.create({
       data: {
         websiteId: website.id,
         document: validatedDoc as any,
-        schemaVersion: '2.0',
+        schemaVersion: '3.0',
         revision: website.documentRevision,
         reason,
         createdBy: userId,
@@ -411,16 +609,18 @@ export class WebsitesService {
       throw new NotFoundException('Version snapshot not found');
     }
 
-    const restoredDoc = this.validator.validate(versionRecord.document);
+    // Migrate version snapshot to V3 if it was recorded in V2
+    const restoredDoc = this.migrationService.migrateWebsiteDocument(versionRecord.document);
     const nextRevision = (website.documentRevision || 1) + 1;
+    const documentHash = this.validator.computeDocumentHash(restoredDoc);
 
     return this.prisma.$transaction(async (tx) => {
-      // Record the restore action as a new snapshot
+      // Record restore event as a new version
       await tx.websiteVersion.create({
         data: {
           websiteId: website.id,
           document: restoredDoc as any,
-          schemaVersion: '2.0',
+          schemaVersion: '3.0',
           revision: nextRevision,
           reason: `restore-from-${versionRecord.revision}`,
         },
@@ -433,16 +633,25 @@ export class WebsitesService {
           draftDocument: restoredDoc as any,
           theme: restoredDoc.theme as any,
           documentRevision: nextRevision,
+          schemaVersion: '3.0',
         },
       });
 
       return {
         websiteId: updated.id,
         revision: updated.documentRevision,
+        documentHash,
         restoredFromVersionId: versionId,
         document: restoredDoc,
       };
     });
+  }
+
+  /**
+   * Expose Component Registry manifest for visual editor tools and AI builders.
+   */
+  getComponentRegistry() {
+    return getComponentManifest();
   }
 
   /**
@@ -480,5 +689,14 @@ export class WebsitesService {
     return this.prisma.website.delete({
       where: { id },
     });
+  }
+
+  private async ensureUniqueSlug(tenantId: string, slug: string): Promise<string> {
+    const existing = await this.prisma.website.findUnique({
+      where: { tenantId_slug: { tenantId, slug } },
+    });
+    if (!existing) return slug;
+    const suffix = crypto.randomBytes(3).toString('hex');
+    return `${slug}-${suffix}`;
   }
 }

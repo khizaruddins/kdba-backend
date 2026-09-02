@@ -1,13 +1,12 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DocumentMigrationService } from '../documents/services/document-migration.service';
 import { WebsitesService } from '../websites/websites.service';
 import { CreateLeadDto } from '../leads/dto/lead.dto';
-import { WebsiteDocument } from '../documents/types/document.types';
+import { WebsiteDocumentV3 } from '../documents/types/document.types';
 
 @Injectable()
 export class PublishingService {
@@ -27,7 +26,7 @@ export class PublishingService {
   /**
    * Public website resolver:
    * Resolves published website data by tenant slug or website slug.
-   * Returns clean, public-only configuration including canonical WebsiteDocument,
+   * Returns clean, public-only configuration including canonical V3 WebsiteDocument,
    * business, pages, products, and pricing.
    */
   async getPublicWebsite(slug: string) {
@@ -193,8 +192,8 @@ export class PublishingService {
   }
 
   /**
-   * Format public website response delivering both canonical WebsiteDocument (V2)
-   * and legacy relational pages/sections format (V1 fallback).
+   * Format public website response delivering canonical V3 WebsiteDocument
+   * with complete tenant shielding and CDN cache-friendly structure.
    */
   private formatPublicResponse(
     tenant: any,
@@ -203,16 +202,19 @@ export class PublishingService {
     products: any[],
     pricingPlans: any[],
   ) {
-    // Resolve published document
-    const canonicalDoc: WebsiteDocument = (website.publishedDocument ||
-      website.draftDocument ||
-      this.migrationService.migrateLegacyRelationalWebsite(
-        website,
-        website.pages,
-        business,
-        website.template,
-        true,
-      )) as WebsiteDocument;
+    // Resolve published document (migrating to V3 if legacy)
+    const rawPublished = website.publishedDocument || website.draftDocument;
+    const canonicalDoc: WebsiteDocumentV3 = rawPublished
+      ? this.migrationService.migrateWebsiteDocument(rawPublished)
+      : this.migrationService.migrateWebsiteDocument(
+          this.migrationService.migrateLegacyRelationalWebsite(
+            website,
+            website.pages,
+            business,
+            website.template,
+            true,
+          ),
+        );
 
     return {
       tenant: {
@@ -243,26 +245,13 @@ export class PublishingService {
         name: website.name,
         slug: website.slug,
         status: website.status,
-        schemaVersion: website.schemaVersion || '2.0',
+        schemaVersion: '3.0',
         documentRevision: website.documentRevision || 1,
-        theme: website.theme,
+        theme: canonicalDoc.theme,
         seoTitle: website.seoTitle,
         seoDescription: website.seoDescription,
         favicon: website.favicon,
         publishedAt: website.publishedAt,
-        pages: (website.pages || []).map((page: any) => ({
-          id: page.id,
-          title: page.title,
-          slug: page.slug,
-          type: page.type,
-          sections: (page.sections || []).map((section: any) => ({
-            id: section.id,
-            type: section.type,
-            title: section.title,
-            config: section.publishedConfig || section.draftConfig,
-            sortOrder: section.sortOrder,
-          })),
-        })),
       },
       products: products.map((p) => ({
         id: p.id,

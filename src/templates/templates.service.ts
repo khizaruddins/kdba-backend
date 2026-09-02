@@ -7,8 +7,9 @@ import {
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DocumentValidatorService } from '../documents/services/document-validator.service';
+import { DocumentMigrationService } from '../documents/services/document-migration.service';
 import { ALL_NICHE_TEMPLATES, TEMPLATES_BY_ID, TEMPLATES_BY_SLUG } from './data/definitions';
-import { WebsiteDocument } from '../documents/types/document.types';
+import { WebsiteDocumentV3 } from '../documents/types/document.types';
 
 @Injectable()
 export class TemplatesService {
@@ -17,6 +18,7 @@ export class TemplatesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly validator: DocumentValidatorService,
+    private readonly migrationService: DocumentMigrationService,
   ) {}
 
   /**
@@ -61,12 +63,12 @@ export class TemplatesService {
       style: t.style,
       theme: t.document.theme,
       version: t.version,
-      schemaVersion: t.schemaVersion,
+      schemaVersion: '3.0',
     }));
   }
 
   /**
-   * Find single template with its canonical WebsiteDocument by ID or slug
+   * Find single template with its canonical V3 WebsiteDocument by ID or slug
    */
   async findOne(idOrSlug: string) {
     const template = await this.prisma.template.findFirst({
@@ -76,6 +78,7 @@ export class TemplatesService {
     });
 
     if (template && template.document) {
+      const v3Doc = this.migrationService.migrateWebsiteDocument(template.document);
       return {
         id: template.id,
         name: template.name,
@@ -84,16 +87,17 @@ export class TemplatesService {
         category: template.category,
         previewImage: template.previewImage,
         style: template.style,
-        theme: template.theme,
+        theme: v3Doc.theme,
         version: template.version,
-        schemaVersion: template.schemaVersion,
-        document: template.document as unknown as WebsiteDocument,
+        schemaVersion: '3.0',
+        document: v3Doc,
       };
     }
 
     // Check definitions registry
     const def = TEMPLATES_BY_ID.get(idOrSlug) || TEMPLATES_BY_SLUG.get(idOrSlug);
     if (def) {
+      const v3Doc = this.migrationService.migrateWebsiteDocument(def.document);
       return {
         id: def.id,
         name: def.name,
@@ -102,10 +106,10 @@ export class TemplatesService {
         category: def.category,
         previewImage: def.previewImage,
         style: def.style,
-        theme: def.document.theme,
+        theme: v3Doc.theme,
         version: def.version,
-        schemaVersion: def.schemaVersion,
-        document: def.document,
+        schemaVersion: '3.0',
+        document: v3Doc,
       };
     }
 
@@ -114,7 +118,7 @@ export class TemplatesService {
 
   /**
    * Clone a template directly into a new customer website.
-   * Clones the canonical WebsiteDocument into website.draftDocument & website.publishedDocument,
+   * Clones the canonical V3 WebsiteDocument into website.draftDocument & website.publishedDocument,
    * creates an initial WebsiteVersion snapshot, and populates business information.
    */
   async clone(
@@ -132,11 +136,11 @@ export class TemplatesService {
       throw new ForbiddenException('Business profile not found or access denied');
     }
 
-    // 2. Resolve template
+    // 2. Resolve template (returns V3 document)
     const template = await this.findOne(templateIdOrSlug);
 
     // 3. Deep-clone template document & personalize business metadata
-    const clonedDoc: WebsiteDocument = JSON.parse(JSON.stringify(template.document));
+    const clonedDoc: WebsiteDocumentV3 = JSON.parse(JSON.stringify(template.document));
     clonedDoc.site.name = name;
     clonedDoc.business.name = business.name;
     if (business.description) clonedDoc.business.description = business.description;
@@ -151,8 +155,8 @@ export class TemplatesService {
     if (business.country) clonedDoc.business.country = business.country;
     if (business.zipCode) clonedDoc.business.zipCode = business.zipCode;
 
-    // Validate normalized document
-    const normalizedDoc = this.validator.validate(clonedDoc);
+    // Validate normalized V3 document
+    const normalizedDoc = this.validator.validateV3(clonedDoc);
 
     // 4. Generate unique slug
     const baseSlug = name
@@ -178,9 +182,9 @@ export class TemplatesService {
           category: template.category as any,
           previewImage: template.previewImage,
           style: template.style,
-          theme: template.theme as any,
+          theme: normalizedDoc.theme as any,
           document: normalizedDoc as any,
-          schemaVersion: '2.0',
+          schemaVersion: '3.0',
           version: '1.0',
         },
       });
@@ -189,7 +193,7 @@ export class TemplatesService {
       dbTemplateId = dbTemplate.id;
     }
 
-    // 6. Transactionally create website, snapshot, and relational sync for backward compatibility
+    // 6. Transactionally create website and initial V3 snapshot
     return this.prisma.website.create({
       data: {
         tenantId,
@@ -201,68 +205,34 @@ export class TemplatesService {
         theme: normalizedDoc.theme as any,
         draftDocument: normalizedDoc as any,
         publishedDocument: normalizedDoc as any,
-        schemaVersion: '2.0',
+        schemaVersion: '3.0',
         documentRevision: 1,
         seoTitle: business.name,
         seoDescription: business.description || `Welcome to ${business.name}`,
         versions: {
           create: {
             document: normalizedDoc as any,
-            schemaVersion: '2.0',
+            schemaVersion: '3.0',
             revision: 1,
             reason: 'initial-clone',
           },
-        },
-        pages: {
-          create: normalizedDoc.pages.map((pageDoc) => {
-            const validPageTypes = ['HOME', 'ABOUT', 'CONTACT', 'CUSTOM'];
-            const upperType = pageDoc.type.toUpperCase();
-            const pageType = validPageTypes.includes(upperType) ? upperType : 'CUSTOM';
-            return {
-              title: pageDoc.title,
-              slug: pageDoc.slug,
-              type: pageType as any,
-              sortOrder: pageDoc.sortOrder,
-              sections: {
-                create: pageDoc.sections.map((secDoc) => {
-                  const typeEnum = secDoc.type.toUpperCase().replace(/-/g, '_');
-                  const validEnums = [
-                    'NAVBAR', 'HERO', 'ABOUT', 'SERVICES', 'PRODUCTS', 'PRICING',
-                    'TESTIMONIALS', 'GALLERY', 'TEAM', 'FAQ', 'CTA', 'CONTACT', 'FOOTER',
-                  ];
-                  const sectionType = validEnums.includes(typeEnum) ? typeEnum : 'HERO';
-                  return {
-                    type: sectionType as any,
-                    title: secDoc.props?.headline ? String(secDoc.props.headline) : secDoc.type,
-                    draftConfig: secDoc.props as any,
-                    publishedConfig: secDoc.props as any,
-                    sortOrder: secDoc.sortOrder,
-                    enabled: secDoc.enabled,
-                  };
-                }),
-              },
-            };
-          }),
         },
       },
       include: {
         business: true,
         template: true,
-        pages: {
-          include: { sections: { orderBy: { sortOrder: 'asc' } } },
-          orderBy: { sortOrder: 'asc' },
-        },
       },
     });
   }
 
   /**
-   * Seed all 20 niche templates into the database.
+   * Seed all 20 niche templates into the database with V3 documents.
    */
   async seedTemplates(): Promise<{ seeded: number }> {
     let count = 0;
     for (const t of ALL_NICHE_TEMPLATES) {
-      const validated = this.validator.validate(t.document);
+      const v3Doc = this.migrationService.migrateWebsiteDocument(t.document);
+      const validated = this.validator.validateV3(v3Doc);
 
       await this.prisma.template.upsert({
         where: { slug: t.slug },
@@ -274,7 +244,7 @@ export class TemplatesService {
           style: t.style,
           theme: validated.theme as any,
           document: validated as any,
-          schemaVersion: '2.0',
+          schemaVersion: '3.0',
           version: t.version,
         },
         create: {
@@ -287,13 +257,13 @@ export class TemplatesService {
           style: t.style,
           theme: validated.theme as any,
           document: validated as any,
-          schemaVersion: '2.0',
+          schemaVersion: '3.0',
           version: t.version,
         },
       });
       count++;
     }
-    this.logger.log(`Successfully seeded ${count} canonical V2 templates`);
+    this.logger.log(`Successfully seeded ${count} canonical V3 templates`);
     return { seeded: count };
   }
 

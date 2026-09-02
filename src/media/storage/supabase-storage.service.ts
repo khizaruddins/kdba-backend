@@ -4,7 +4,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import {
@@ -13,10 +12,24 @@ import {
   StorageResult,
 } from './storage.interface';
 
+interface SupabaseClientLike {
+  storage: {
+    from: (bucket: string) => {
+      upload: (
+        key: string,
+        body: Buffer,
+        options: any,
+      ) => Promise<{ error: any; data: any }>;
+      remove: (keys: string[]) => Promise<{ error: any; data: any }>;
+      getPublicUrl: (key: string) => { data: { publicUrl: string } };
+    };
+  };
+}
+
 @Injectable()
 export class SupabaseStorageService implements StorageService {
   private readonly logger = new Logger(SupabaseStorageService.name);
-  private readonly supabase: SupabaseClient | null = null;
+  private readonly supabase: SupabaseClientLike | null = null;
   private readonly bucket: string;
 
   constructor(private readonly configService: ConfigService) {
@@ -32,10 +45,18 @@ export class SupabaseStorageService implements StorageService {
       this.configService.get<string>('SUPABASE_BUCKET', 'kdba-bucket');
 
     if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
-      this.logger.log(
-        `Initialized Supabase Storage client (Bucket: ${this.bucket})`,
-      );
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { createClient } = require('@supabase/supabase-js');
+        this.supabase = createClient(supabaseUrl, supabaseKey);
+        this.logger.log(
+          `Initialized Supabase Storage client (Bucket: ${this.bucket})`,
+        );
+      } catch {
+        this.logger.warn(
+          '@supabase/supabase-js module not available. Uploads to Supabase will fail.',
+        );
+      }
     } else {
       this.logger.warn(
         'Supabase credentials (SUPABASE_URL, SUPABASE_KEY) are not defined. Uploads to Supabase will fail.',

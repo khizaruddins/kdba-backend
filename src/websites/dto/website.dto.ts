@@ -5,9 +5,11 @@ import {
   IsString,
   IsObject,
   IsNumber,
+  IsArray,
   MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { DocumentOperation } from '../../documents/types/document.types';
 
 export class CreateWebsiteDto {
   @ApiProperty({ description: 'Business ID to create website for' })
@@ -62,7 +64,7 @@ export class UpdateWebsiteDto {
 }
 
 export class SaveWebsiteDocumentDto {
-  @ApiProperty({ description: 'Full canonical WebsiteDocument JSON payload' })
+  @ApiProperty({ description: 'Full canonical WebsiteDocument JSON payload (V3.0 or V2.0)' })
   @IsObject()
   @IsNotEmpty()
   document: Record<string, unknown>;
@@ -71,25 +73,52 @@ export class SaveWebsiteDocumentDto {
   @IsNumber()
   @IsOptional()
   expectedRevision?: number;
+
+  @ApiPropertyOptional({ description: 'Base revision alias for optimistic concurrency control' })
+  @IsNumber()
+  @IsOptional()
+  baseRevision?: number;
+}
+
+export class ApplyDocumentOperationsDto {
+  @ApiPropertyOptional({ description: 'Base revision the client edited against for optimistic concurrency' })
+  @IsNumber()
+  @IsOptional()
+  baseRevision?: number;
+
+  @ApiProperty({
+    description: 'Array of typed visual document operations to apply transactionally',
+    example: [
+      {
+        type: 'updateProps',
+        pageId: 'page_home',
+        nodeId: 'heading_123',
+        props: { text: 'Grow Your Business' },
+      },
+    ],
+  })
+  @IsArray()
+  @IsNotEmpty()
+  operations: DocumentOperation[];
+}
+
+export class DuplicateWebsiteDto {
+  @ApiPropertyOptional({ description: 'New name for duplicated website', example: 'Duplicate - My Website' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  name?: string;
+
+  @ApiPropertyOptional({ description: 'Target business profile ID (optional, defaults to current)' })
+  @IsString()
+  @IsOptional()
+  businessId?: string;
 }
 
 export class MutateWebsiteDocumentDto {
   @ApiProperty({
-    description: 'Mutation type',
+    description: 'Mutation type (V2 legacy)',
     example: 'UPDATE_THEME',
-    enum: [
-      'UPDATE_THEME',
-      'UPDATE_BUSINESS',
-      'UPDATE_NAVIGATION',
-      'UPDATE_SEO',
-      'UPDATE_SETTINGS',
-      'UPDATE_SECTION_PROPS',
-      'UPDATE_SECTION_VARIANT',
-      'TOGGLE_SECTION',
-      'REORDER_SECTIONS',
-      'ADD_SECTION',
-      'REMOVE_SECTION',
-    ],
   })
   @IsString()
   @IsNotEmpty()

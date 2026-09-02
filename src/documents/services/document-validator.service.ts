@@ -12,25 +12,90 @@ import {
   SectionSchema,
 } from '../schemas/document.schema';
 import {
+  WebsiteDocumentV3Schema,
+  DocumentOperationSchema,
+  DocumentOperationsPayloadSchema,
+} from '../schemas/v3/document-v3.schema';
+import {
   WebsiteDocument,
+  WebsiteDocumentV3,
   DocumentMutation,
   SectionContract,
   PageContract,
+  WebsiteNode,
+  PageDocumentV3,
 } from '../types/document.types';
 
-export interface ValidationResult {
+export interface ValidationResult<T = WebsiteDocument | WebsiteDocumentV3> {
   isValid: boolean;
   errors?: Array<{ path: string; message: string }>;
-  data?: WebsiteDocument;
+  data?: T;
 }
+
+const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024; // 5 MB
+const DEFAULT_MAX_NODES = 2000;
+const DEFAULT_MAX_DEPTH = 32;
 
 @Injectable()
 export class DocumentValidatorService {
   /**
-   * Validate and parse a full WebsiteDocument.
-   * Throws BadRequestException on failure or returns parsed/normalized data.
+   * Validate and parse a WebsiteDocument (supports both V3.0 and V2.0).
    */
-  validate(document: unknown): WebsiteDocument {
+  validate(document: WebsiteDocumentV3): WebsiteDocumentV3;
+  validate(document: WebsiteDocument): WebsiteDocument;
+  validate(document: unknown): WebsiteDocument | WebsiteDocumentV3;
+  validate(document: unknown): any {
+    if (!document || typeof document !== 'object') {
+      throw new BadRequestException('Website document must be a non-null object');
+    }
+
+    const version = (document as any).schemaVersion;
+
+    if (version === '2.0') {
+      return this.validateV2(document);
+    }
+
+    if (version === '3.0') {
+      return this.validateV3(document);
+    }
+
+    // Default to V3 validation if unspecified or newer
+    try {
+      return this.validateV3(document);
+    } catch {
+      return this.validateV2(document);
+    }
+  }
+
+  /**
+   * Strictly validate and normalize a V3.0 WebsiteDocument.
+   */
+  validateV3(document: unknown): WebsiteDocumentV3 {
+    this.enforceDocumentLimits(document);
+
+    const result = WebsiteDocumentV3Schema.safeParse(document);
+
+    if (!result.success) {
+      const formattedErrors = result.error.issues.map((err: ZodIssue) => ({
+        path: err.path.join('.'),
+        message: err.message,
+      }));
+
+      throw new BadRequestException({
+        message: 'V3 website document schema validation failed',
+        errors: formattedErrors,
+      });
+    }
+
+    const normalized = this.normalizeV3(result.data as WebsiteDocumentV3);
+    this.sanitizeDocumentV3(normalized);
+    return normalized;
+  }
+
+  /**
+   * Strictly validate and normalize a legacy V2.0 WebsiteDocument.
+   */
+  validateV2(document: unknown): WebsiteDocument {
     if (!document || typeof document !== 'object') {
       throw new BadRequestException('Website document must be a non-null object');
     }
@@ -44,50 +109,84 @@ export class DocumentValidatorService {
       }));
 
       throw new BadRequestException({
-        message: 'Website document schema validation failed',
+        message: 'V2 website document schema validation failed',
         errors: formattedErrors,
       });
     }
 
-    return this.normalize(result.data as WebsiteDocument);
+    return this.normalizeV2(result.data as WebsiteDocument);
   }
 
   /**
-   * Safe validate without throwing exception (useful for template checking and CI)
+   * Safe validate without throwing an exception.
    */
   safeValidate(document: unknown): ValidationResult {
-    if (!document || typeof document !== 'object') {
+    try {
+      const data = this.validate(document);
+      return { isValid: true, data };
+    } catch (err: any) {
       return {
         isValid: false,
-        errors: [{ path: '', message: 'Document must be a non-null object' }],
+        errors: err?.response?.errors || [{ path: '', message: err.message }],
       };
     }
+  }
 
-    const result = WebsiteDocumentSchema.safeParse(document);
+  /**
+   * Compute a deterministic cryptographic SHA-256 hash of the document content.
+   */
+  computeDocumentHash(document: unknown): string {
+    const serialized = JSON.stringify(document);
+    return crypto.createHash('sha256').update(serialized).digest('hex');
+  }
 
-    if (!result.success) {
+  /**
+   * Normalize V3 document structure:
+   * - Assign unique IDs if missing
+   * - Sort pages sequentially
+   * - Ensure page-root structure
+   */
+  normalizeV3(doc: WebsiteDocumentV3): WebsiteDocumentV3 {
+    const pages: PageDocumentV3[] = (doc.pages || []).map((page, pIdx) => {
+      const pageId = page.id || `page_${pIdx + 1}_${crypto.randomBytes(3).toString('hex')}`;
+
+      // Normalize root node
+      let root = page.root;
+      if (!root || root.type !== 'page-root') {
+        root = {
+          id: `root_${pageId}`,
+          type: 'page-root',
+          name: 'Page Root',
+          children: root?.children || [],
+          props: {},
+          styles: { layout: { display: 'flex', width: '100%', minHeight: '100vh' } },
+        };
+      }
+
+      this.ensureNodeIds(root);
+
       return {
-        isValid: false,
-        errors: result.error.issues.map((err: ZodIssue) => ({
-          path: err.path.join('.'),
-          message: err.message,
-        })),
+        ...page,
+        id: pageId,
+        sortOrder: typeof page.sortOrder === 'number' ? page.sortOrder : pIdx,
+        enabled: page.enabled !== undefined ? page.enabled : true,
+        root,
       };
-    }
+    });
+
+    pages.sort((a, b) => a.sortOrder - b.sortOrder);
 
     return {
-      isValid: true,
-      data: this.normalize(result.data as WebsiteDocument),
+      ...doc,
+      schemaVersion: '3.0',
+      pages,
     };
   }
 
   /**
-   * Normalize document structure:
-   * - Assign unique IDs to pages and sections if missing
-   * - Normalize sort orders sequentially
-   * - Ensure all links and text are clean
+   * Normalize legacy V2 document structure.
    */
-  normalize(doc: WebsiteDocument): WebsiteDocument {
+  normalizeV2(doc: WebsiteDocument): WebsiteDocument {
     const pages: PageContract[] = (doc.pages || []).map((page, pIdx) => {
       const pageId = page.id || `page_${pIdx + 1}_${crypto.randomBytes(3).toString('hex')}`;
       const sections: SectionContract[] = (page.sections || []).map((sec, sIdx) => {
@@ -102,7 +201,6 @@ export class DocumentValidatorService {
         };
       });
 
-      // Sort sections by sortOrder
       sections.sort((a, b) => a.sortOrder - b.sortOrder);
 
       return {
@@ -114,7 +212,6 @@ export class DocumentValidatorService {
       };
     });
 
-    // Sort pages by sortOrder
     pages.sort((a, b) => a.sortOrder - b.sortOrder);
 
     return {
@@ -124,9 +221,109 @@ export class DocumentValidatorService {
     };
   }
 
-  /**
-   * Apply a granular mutation to an existing WebsiteDocument and validate the result.
-   */
+  // ─── LIMIT ENFORCEMENT & SECURITY SANITIZATION ──────────────────────────────
+
+  private enforceDocumentLimits(document: unknown): void {
+    const rawJson = JSON.stringify(document);
+    if (Buffer.byteLength(rawJson, 'utf8') > MAX_DOCUMENT_BYTES) {
+      throw new BadRequestException(
+        `Document exceeds maximum payload size of ${MAX_DOCUMENT_BYTES / (1024 * 1024)}MB`,
+      );
+    }
+
+    const doc = document as WebsiteDocumentV3;
+    const maxNodes = doc.settings?.limits?.maxNodes || DEFAULT_MAX_NODES;
+    const maxDepth = doc.settings?.limits?.maxDepth || DEFAULT_MAX_DEPTH;
+
+    if (Array.isArray(doc.pages)) {
+      let totalNodes = 0;
+      for (const page of doc.pages) {
+        if (page.root) {
+          totalNodes += this.countNodes(page.root);
+          const depth = this.calculateMaxDepth(page.root);
+          if (depth > maxDepth) {
+            throw new BadRequestException(
+              `Page "${page.title}" exceeds maximum allowable nesting depth of ${maxDepth} (current: ${depth})`,
+            );
+          }
+        }
+      }
+
+      if (totalNodes > maxNodes) {
+        throw new BadRequestException(
+          `Document exceeds maximum allowable node count of ${maxNodes} (current: ${totalNodes})`,
+        );
+      }
+    }
+  }
+
+  private countNodes(node: WebsiteNode): number {
+    let count = 1;
+    if (node.children) {
+      for (const child of node.children) {
+        count += this.countNodes(child);
+      }
+    }
+    return count;
+  }
+
+  private calculateMaxDepth(node: WebsiteNode, current = 1): number {
+    if (!node.children || node.children.length === 0) {
+      return current;
+    }
+    let max = current;
+    for (const child of node.children) {
+      const d = this.calculateMaxDepth(child, current + 1);
+      if (d > max) max = d;
+    }
+    return max;
+  }
+
+  private ensureNodeIds(node: WebsiteNode): void {
+    if (!node.id) {
+      node.id = `${node.type.replace(/-/g, '_')}_${crypto.randomBytes(4).toString('hex')}`;
+    }
+    if (node.children && Array.isArray(node.children)) {
+      for (const child of node.children) {
+        this.ensureNodeIds(child);
+      }
+    }
+  }
+
+  private sanitizeDocumentV3(doc: WebsiteDocumentV3): void {
+    // Sanitize any dangerous scripts or event handlers in rich-text or text props
+    for (const page of doc.pages) {
+      this.sanitizeNode(page.root);
+    }
+  }
+
+  private sanitizeNode(node: WebsiteNode): void {
+    if (node.props) {
+      for (const [key, value] of Object.entries(node.props)) {
+        if (typeof value === 'string') {
+          node.props[key] = this.stripDangerousHtml(value);
+        }
+      }
+    }
+
+    if (node.children && Array.isArray(node.children)) {
+      for (const child of node.children) {
+        this.sanitizeNode(child);
+      }
+    }
+  }
+
+  private stripDangerousHtml(input: string): string {
+    // Strip <script> tags, onload=, onclick=, javascript: URIs
+    return input
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/on\w+\s*=\s*(['"]).*?\1/gi, '')
+      .replace(/on\w+\s*=\s*[^>\s]+/gi, '')
+      .replace(/javascript:/gi, '');
+  }
+
+  // ─── LEGACY V2 MUTATION SUPPORT ─────────────────────────────────────────────
+
   applyMutation(
     currentDoc: WebsiteDocument,
     mutationRaw: unknown,
@@ -281,7 +478,10 @@ export class DocumentValidatorService {
         for (const page of doc.pages) {
           const sec = page.sections.find((s) => s.id === targetId);
           if (sec) {
-            sec.enabled = mutation.payload.enabled !== undefined ? Boolean(mutation.payload.enabled) : !sec.enabled;
+            sec.enabled =
+              mutation.payload.enabled !== undefined
+                ? Boolean(mutation.payload.enabled)
+                : !sec.enabled;
             sectionFound = true;
             break;
           }
@@ -300,7 +500,9 @@ export class DocumentValidatorService {
         }>;
 
         if (!pageId || !Array.isArray(sectionOrders)) {
-          throw new BadRequestException('pageId and sectionOrders array required for REORDER_SECTIONS');
+          throw new BadRequestException(
+            'pageId and sectionOrders array required for REORDER_SECTIONS',
+          );
         }
 
         const page = doc.pages.find((p) => p.id === pageId);
@@ -380,7 +582,6 @@ export class DocumentValidatorService {
         throw new BadRequestException(`Unsupported mutation type: ${mutation.type}`);
     }
 
-    // Validate and return resulting document
-    return this.validate(doc);
+    return this.validateV2(doc);
   }
 }
