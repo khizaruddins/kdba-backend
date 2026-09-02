@@ -1,0 +1,178 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const realEstateConsultantTemplate = {
+  id: 'real-estate-consultant',
+  name: 'Luxury Real Estate & Advisory',
+  slug: 'real-estate-consultant',
+  description: 'High-converting real estate advisory template featuring luxury property listings, market stats, client testimonials, and valuation tools.',
+  category: 'BUSINESS',
+  previewImage: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80',
+  style: ['luxury', 'corporate', 'modern'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Vanguard Luxury Real Estate',
+      businessType: 'real-estate',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0f172a',
+      secondaryColor: '#f8fafc',
+      accentColor: '#b45309',
+      backgroundColor: '#ffffff',
+      textColor: '#1e293b',
+      headingFont: 'Playfair Display',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Vanguard Luxury Real Estate Advisory',
+      tagline: 'Prime residential estates, penthouses & discreet private transactions',
+      description: 'Miami and Palm Beach premier real estate advisory handling over $650M+ in luxury acquisitions and confidential sales.',
+      category: 'Luxury Real Estate Brokerage',
+      email: 'advisory@vanguardluxuryre.com',
+      phone: '+1 (305) 555-7720',
+      address: '1111 Brickell Avenue, Suite 2400',
+      city: 'Miami',
+      state: 'FL',
+      country: 'US',
+      zipCode: '33131',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Properties', href: '/#listings' },
+        { id: 'nav_3', label: 'Market Insights', href: '/#stats' },
+        { id: 'nav_4', label: 'About', href: '/#about' },
+        { id: 'nav_5', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Prime Markets',
+          links: [
+            { id: 'fl_1', label: 'Miami Beach Waterfront', href: '/#listings' },
+            { id: 'fl_2', label: 'Brickell Penthouses', href: '/#listings' },
+            { id: 'fl_3', label: 'Palm Beach Estates', href: '/#listings' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Request Valuation',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'sticky',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'VANGUARD LUXURY' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Exclusive South Florida Portfolio',
+              headline: 'Discover Architectural Masterpieces & Waterfront Sanctuaries',
+              subheadline: 'Representing the most prestigious luxury residences and confidential off-market transactions in Miami and Palm Beach.',
+              primaryCtaText: 'Browse Exclusive Listings',
+              primaryCtaUrl: '#listings',
+              secondaryCtaText: 'Schedule Consultation',
+              secondaryCtaUrl: '#contact',
+              imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_stats',
+            type: 'stats',
+            variant: 'card-grid',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              items: [
+                { value: '$650M+', label: 'Career Transaction Volume' },
+                { value: '18 Days', label: 'Average Days on Market' },
+                { value: '98.6%', label: 'List-to-Sale Price Ratio' },
+                { value: '#1', label: 'Waterfront Boutique Team' },
+              ],
+            },
+          },
+          {
+            id: 'sec_listings',
+            type: 'property-grid',
+            variant: 'filter-search-grid',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Curated Portfolio',
+              headline: 'Featured Luxury Residences',
+              items: [
+                { title: 'The Biscayne Modern Villa', location: 'Star Island, Miami Beach', price: '$24,500,000', specs: '7 Beds • 9 Baths • 10,400 Sq Ft', imageUrl: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&auto=format&fit=crop&q=80' },
+                { title: 'The Sky Penthouse Collection', location: 'Brickell Flatiron, Miami', price: '$9,800,000', specs: '4 Beds • 5 Baths • 5,800 Sq Ft', imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&auto=format&fit=crop&q=80' },
+              ],
+            },
+          },
+          {
+            id: 'sec_about',
+            type: 'about',
+            variant: 'split-text-image',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Advisory Excellence',
+              headline: 'Data-Driven Insights with Absolute Discretion',
+              description: 'Our advisory team combines macroeconomic real estate intelligence, proprietary off-market networks, and global wealth syndication.',
+              imageUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Connect with a Senior Real Estate Advisor',
+              subheadline: 'Whether acquiring or liquidating prime real estate, we ensure private, white-glove execution.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Vanguard Luxury Real Estate Advisory LLC.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Vanguard — Luxury Real Estate Advisory Miami & Palm Beach',
+      metaDescription: 'Exclusive waterfront mansions, penthouses, and private off-market estates in Miami with Vanguard Luxury Real Estate.',
+      keywords: ['miami luxury real estate', 'waterfront mansions', 'brickell penthouse', 'palm beach estates'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

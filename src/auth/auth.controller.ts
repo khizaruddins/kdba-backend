@@ -113,15 +113,23 @@ export class AuthController {
 
   // ─── Cookie Helpers ────────────────────────────────────────────
 
+  private getCleanCookieDomain(): string | undefined {
+    let domain = this.configService.get<string>('COOKIE_DOMAIN');
+    if (!domain || domain === 'localhost') return undefined;
+    domain = domain.replace(/^https?:\/\//, '').split(':')[0].split('/')[0].trim();
+    if (!domain || domain === 'localhost') return undefined;
+    return domain;
+  }
+
   private setRefreshTokenCookie(res: Response, token: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const domain = this.configService.get<string>('COOKIE_DOMAIN', 'localhost');
+    const domain = this.getCleanCookieDomain();
 
     res.cookie('refreshToken', token, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      domain,
+      ...(domain ? { domain } : {}),
       path: '/api/v1/auth',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
@@ -129,13 +137,13 @@ export class AuthController {
 
   private clearRefreshTokenCookie(res: Response) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    const domain = this.configService.get<string>('COOKIE_DOMAIN', 'localhost');
+    const domain = this.getCleanCookieDomain();
 
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'strict' : 'lax',
-      domain,
+      ...(domain ? { domain } : {}),
       path: '/api/v1/auth',
     });
   }

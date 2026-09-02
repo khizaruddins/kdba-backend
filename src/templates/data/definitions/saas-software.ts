@@ -1,0 +1,190 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const saasSoftwareTemplate = {
+  id: 'saas-software',
+  name: 'Modern B2B SaaS & Developer Tool',
+  slug: 'saas-software',
+  description: 'Clean, high-conversion SaaS landing page featuring interactive feature cards, pricing tiers, API code previews, and security compliance badges.',
+  category: 'BUSINESS',
+  previewImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80',
+  style: ['modern', 'tech', 'sleek'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'OmniFlow AI',
+      businessType: 'saas',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0f172a',
+      secondaryColor: '#ffffff',
+      accentColor: '#3b82f6',
+      backgroundColor: '#020617',
+      textColor: '#f8fafc',
+      headingFont: 'Plus Jakarta Sans',
+      bodyFont: 'Inter',
+      borderRadius: 'md',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'OmniFlow AI Platform',
+      tagline: 'Autonomous data orchestration and real-time streaming intelligence',
+      description: 'The unified API platform for enterprise engineering teams to query, transform, and sync terabytes of event data in sub-milliseconds.',
+      category: 'Enterprise Cloud SaaS',
+      email: 'sales@omniflow.dev',
+      phone: '+1 (800) 555-0144',
+      city: 'San Francisco',
+      state: 'CA',
+      country: 'US',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Features', href: '/#features' },
+        { id: 'nav_2', label: 'Integrations', href: '/#integrations' },
+        { id: 'nav_3', label: 'Pricing', href: '/#pricing' },
+        { id: 'nav_4', label: 'Docs', href: 'https://docs.omniflow.dev', target: '_blank' },
+      ],
+      footer: [
+        {
+          title: 'Product',
+          links: [
+            { id: 'fl_1', label: 'Data Pipelines', href: '/#features' },
+            { id: 'fl_2', label: 'Security & SOC2', href: '/#features' },
+            { id: 'fl_3', label: 'Changelog', href: '/' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Start Free Trial',
+        href: '/#pricing',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'sticky',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'OmniFlow.ai' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'centered',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Announcing OmniFlow 3.0 Real-Time Engine',
+              headline: 'The Real-Time Data Pipeline Built for Modern Cloud Teams',
+              subheadline: 'Eliminate batch ETL lag. Ingest, transform, and replicate billions of events instantly with sub-millisecond end-to-end latency.',
+              primaryCtaText: 'Start Building for Free',
+              primaryCtaUrl: '#pricing',
+              secondaryCtaText: 'Read Developer Docs',
+              secondaryCtaUrl: '#features',
+            },
+          },
+          {
+            id: 'sec_logos',
+            type: 'logo-cloud',
+            variant: 'inline-row',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              headline: 'Trusted by High-Velocity Engineering Teams',
+              logos: ['FIGMA', 'VERCEL', 'ROBLOX', 'SNOWFLAKE', 'DATADOG'],
+            },
+          },
+          {
+            id: 'sec_features',
+            type: 'features',
+            variant: 'grid-3-col',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Architecture',
+              headline: 'Engineered for Infinite Scale & Reliability',
+              items: [
+                { title: 'Sub-Millisecond Stream Transforms', description: 'Run complex SQL stateful transformations across high-throughput Kafka streams with zero buffer delay.' },
+                { title: 'Zero-Egress Distributed Replicas', description: 'Intelligent multi-region cache replication reducing AWS cross-zone bandwidth costs by 68%.' },
+                { title: 'Enterprise SOC2 Type II & HIPAA', description: 'End-to-end AES-256 field-level encryption with automated PII redaction and audit trails.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_pricing',
+            type: 'pricing',
+            variant: '3-tier-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Pay as You Grow',
+              headline: 'Simple, Predictable Cloud Pricing',
+              tiers: [
+                { name: 'Developer', price: '$0', description: 'Ideal for prototyping and staging environments.', features: ['Up to 1M Events / month', '1 Region Deployment', 'Community Slack Support'] },
+                { name: 'Growth', price: '$199/mo', description: 'For growing applications requiring high throughput.', features: ['Up to 50M Events / month', 'Multi-Region Routing', '99.95% Uptime SLA', 'Priority Email Support'], isPopular: true },
+                { name: 'Enterprise', price: 'Custom', description: 'For mission-critical enterprise workloads.', features: ['Unlimited Event Streaming', 'Dedicated VPC / Private Cloud', '99.999% SLA Guarantee', '24/7 Dedicated SRE Support'] },
+              ],
+            },
+          },
+          {
+            id: 'sec_faq',
+            type: 'faq',
+            variant: 'accordion',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Frequently Asked Questions',
+              items: [
+                { question: 'How easy is it to migrate from Kafka or RabbitMQ?', answer: 'OmniFlow provides drop-in native connectors for Kafka, Kinesis, PostgreSQL CDC, and Snowflake. Setup takes under 15 minutes.' },
+                { question: 'Is there a self-hosted on-premise option?', answer: 'Yes! Our Enterprise tier supports Kubernetes deployment within your own AWS, GCP, or Azure VPC.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_cta',
+            type: 'cta',
+            variant: 'banner-centered',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              headline: 'Ready to Streamline Your Data Infrastructure?',
+              subheadline: 'Start with 1M free events today. Upgrade anytime.',
+              primaryCtaText: 'Create Free Account',
+              primaryCtaUrl: '#pricing',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 7,
+            props: {
+              copyright: '© 2026 OmniFlow Technologies Inc. All rights reserved.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'OmniFlow — Autonomous Real-Time Data Streaming Platform',
+      metaDescription: 'Unified real-time data streaming and transformation engine for modern cloud architectures. Sub-millisecond latency.',
+      keywords: ['data pipeline', 'real time streaming', 'kafka alternative', 'etl pipeline', 'b2b saas'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

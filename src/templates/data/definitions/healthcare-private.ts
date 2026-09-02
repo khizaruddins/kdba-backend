@@ -1,0 +1,195 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const healthcarePrivateTemplate = {
+  id: 'healthcare-private',
+  name: 'Private Healthcare & Wellness',
+  slug: 'healthcare-private',
+  description: 'Concierge medical practice template featuring executive health assessments, specialist consultations, and private clinic amenities.',
+  category: 'PROFESSIONAL',
+  previewImage: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&auto=format&fit=crop&q=80',
+  style: ['clean', 'prestigious', 'medical'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Apex Concierge Medical & Longevity',
+      businessType: 'healthcare-clinic',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0f3a40',
+      secondaryColor: '#f4f9f9',
+      accentColor: '#14b8a6',
+      backgroundColor: '#ffffff',
+      textColor: '#134e4a',
+      headingFont: 'Outfit',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'md',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Apex Concierge Medical & Longevity',
+      tagline: 'Personalized preventive medicine, biomarker diagnostics & longevity care',
+      description: 'Dedicated private physicians offering 24/7 direct access, comprehensive health scans, and metabolic optimization.',
+      category: 'Concierge Medicine & Longevity',
+      email: 'admissions@apexconciergemed.com',
+      phone: '+1 (212) 555-9080',
+      address: '780 Fifth Avenue, 14th Floor',
+      city: 'New York',
+      state: 'NY',
+      country: 'US',
+      zipCode: '10019',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Specialties', href: '/#specialties' },
+        { id: 'nav_3', label: 'Physicians', href: '/#physicians' },
+        { id: 'nav_4', label: 'Membership', href: '/#membership' },
+        { id: 'nav_5', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Clinical Services',
+          links: [
+            { id: 'fl_1', label: 'Executive Health Screening', href: '/#specialties' },
+            { id: 'fl_2', label: 'Cardiometabolic Longevity', href: '/#specialties' },
+            { id: 'fl_3', label: 'Hormone Optimization', href: '/#specialties' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Inquire Membership',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'APEX HEALTHCARE' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'fullscreen',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Bespoke Executive Medicine',
+              headline: 'Redefining Private Healthcare & Longevity',
+              subheadline: 'Unparalleled physician access, whole-body MRI, genomic profiling, and proactive disease prevention.',
+              primaryCtaText: 'Request Private Briefing',
+              primaryCtaUrl: '#contact',
+              imageUrl: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_features',
+            type: 'features',
+            variant: 'grid-3-col',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'The Apex Standard',
+              headline: 'Why Discerning Patients Choose Apex',
+              items: [
+                { title: '24/7 Direct Physician Line', description: 'Zero waiting rooms. Direct encrypted text and phone access to your dedicated physician.' },
+                { title: 'Whole-Body Diagnostic Imaging', description: 'Early cancer and cardiovascular detection via advanced non-radiation multi-sequence MRI.' },
+                { title: 'Epigenetic & Biomarker Audits', description: 'Quarterly deep-dive cellular health, inflammation, and metabolic hormone monitoring.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_specialties',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Clinical Programs',
+              headline: 'Specialized Medical Domains',
+              items: [
+                { title: 'Executive Health Assessment', description: 'Comprehensive one-day medical evaluation with 120+ biomarker tests and cardiovascular stress analysis.' },
+                { title: 'Cardiometabolic Prevention', description: 'Targeted protocols for reversing atherosclerosis risk, arterial stiffness, and insulin resistance.' },
+                { title: 'Functional Longevity Medicine', description: 'Personalized cellular optimization, peptide therapies, and mitochondrial support.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_physicians',
+            type: 'team',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Distinguished Faculty',
+              headline: 'World-Class Clinical Leaders',
+              items: [
+                { name: 'Dr. Harrison Vance, MD, FACP', role: 'Chief Medical Officer', bio: 'Former Chief of Internal Medicine at Columbia Presbyterian.' },
+                { name: 'Dr. Sarah Lin, MD, PhD', role: 'Director of Preventive Longevity', bio: 'Harvard Medical School alumna specializing in cardiovascular genomics.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_pricing',
+            type: 'pricing',
+            variant: '3-tier-cards',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              badge: 'Membership Tiers',
+              headline: 'Bespoke Healthcare Plans',
+              tiers: [
+                { name: 'Executive Care', price: '$6,500/yr', description: 'Complete annual diagnostic assessment with direct physician access.', features: ['Annual 120-Biomarker Audit', 'Direct Messaging Access', 'Priority Clinic Visits'] },
+                { name: 'Apex Longevity', price: '$14,000/yr', description: 'Comprehensive concierge care, whole-body MRI, and quarterly biometric optimization.', features: ['Full-Body MRI Screening', 'Quarterly Biomarker Panels', '24/7 Global Telehealth', 'Dedicated Care Navigator'], isPopular: true },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              headline: 'Request Confidential Membership Information',
+              subheadline: 'Our concierge coordinator will contact you to discuss your health objectives.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 7,
+            props: {
+              copyright: '© 2026 Apex Concierge Medical & Longevity LLC.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Apex Concierge Medical — Executive Longevity Medicine NYC',
+      metaDescription: 'Private concierge physicians offering whole-body MRI, biomarker diagnostics, and personalized longevity in New York.',
+      keywords: ['concierge medicine nyc', 'private doctor', 'executive health', 'longevity clinic'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

@@ -1,0 +1,181 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const businessConsultantTemplate = {
+  id: 'business-consultant',
+  name: 'Management & Strategy Consulting',
+  slug: 'business-consultant',
+  description: 'Authoritative management consulting template featuring enterprise case studies, strategic advisory frameworks, and partner bios.',
+  category: 'BUSINESS',
+  previewImage: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop&q=80',
+  style: ['corporate', 'prestigious', 'executive'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Sterling & Croft Advisory',
+      businessType: 'consulting',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0f172a',
+      secondaryColor: '#f1f5f9',
+      accentColor: '#0369a1',
+      backgroundColor: '#ffffff',
+      textColor: '#1e293b',
+      headingFont: 'Playfair Display',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Sterling & Croft Management Advisory',
+      tagline: 'Strategic growth, operational restructuring & M&A transformation',
+      description: 'Advising Fortune 500 boards and private equity leadership on market positioning, post-merger integration, and digital operating models.',
+      category: 'Management Consulting & Strategy',
+      email: 'briefings@sterlingcroft.com',
+      phone: '+1 (212) 555-8200',
+      address: '200 Park Avenue, 45th Floor',
+      city: 'New York',
+      state: 'NY',
+      country: 'US',
+      zipCode: '10166',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Practices', href: '/#practices' },
+        { id: 'nav_3', label: 'Case Studies', href: '/#cases' },
+        { id: 'nav_4', label: 'Leadership', href: '/#team' },
+        { id: 'nav_5', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Advisory Practices',
+          links: [
+            { id: 'fl_1', label: 'Corporate M&A Diligence', href: '/#practices' },
+            { id: 'fl_2', label: 'Digital Operating Transformation', href: '/#practices' },
+            { id: 'fl_3', label: 'Enterprise Supply Optimization', href: '/#practices' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Request Briefing',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'STERLING & CROFT' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Trusted Board Advisors to Global Enterprises',
+              headline: 'Navigating Complexity. Driving Enduring Value Creation.',
+              subheadline: 'We partner with enterprise CEOs and private equity leaders to unlock operational alpha and accelerate market leadership.',
+              primaryCtaText: 'Schedule Executive Briefing',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'Explore Practice Areas',
+              secondaryCtaUrl: '#practices',
+              imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_stats',
+            type: 'stats',
+            variant: 'card-grid',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              items: [
+                { value: '$45B+', label: 'Transaction Value Advised' },
+                { value: '180+', label: 'Enterprise Transformations' },
+                { value: '3.8x', label: 'Median EBITDA Multiple Expansion' },
+                { value: '94%', label: 'Repeat Client Engagement Rate' },
+              ],
+            },
+          },
+          {
+            id: 'sec_practices',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Practice Areas',
+              headline: 'Strategic Advisory Disciplines',
+              items: [
+                { title: 'M&A Strategy & Commercial Diligence', description: 'Comprehensive synergy modeling, customer retention audits, and post-merger integration roadmaps.' },
+                { title: 'Operational Turnarounds & Restructuring', description: 'Working capital optimization, SG&A rationalization, and performance management systems.' },
+                { title: 'Digital & AI Operating Models', description: 'Modernizing enterprise workflow architecture with generative intelligence and cloud agility.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_team',
+            type: 'team',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Senior Leadership',
+              headline: 'Managing Partners',
+              items: [
+                { name: 'Arthur Sterling, MBA', role: 'Managing Partner — M&A & Private Equity', bio: 'Former Senior Partner at McKinsey with 25+ years directing industrial buyouts.' },
+                { name: 'Dr. Eleanor Croft', role: 'Managing Partner — Digital Transformation', bio: 'Former Chief Strategy Officer at Fortune 100 enterprise software conglomerate.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Inquire Regarding an Institutional Mandate',
+              subheadline: 'Our managing partners review all inquiries under strict NDA.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Sterling & Croft Advisory LLC. All rights reserved.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Sterling & Croft — Enterprise Management & Strategy Consulting',
+      metaDescription: 'Strategic management consulting for Fortune 500 leadership, private equity diligence, and enterprise turnarounds.',
+      keywords: ['management consulting', 'strategy consulting', 'm&a diligence', 'executive advisory'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

@@ -190,6 +190,10 @@ model Template {
   category     TemplateCategory
   previewImage String?
   theme        Json // { primaryColor, secondaryColor, accentColor, fontHeading, fontBody, borderRadius }
+  document     Json?            // Canonical V2 WebsiteDocument JSON
+  schemaVersion String          @default("2.0")
+  version      String           @default("1.0")
+  style        String[]         @default(["modern"])
   isActive     Boolean          @default(true)
   isPremium    Boolean          @default(false)
   createdAt    DateTime         @default(now())
@@ -235,29 +239,50 @@ model TemplateSection {
 // ─── WEBSITE ──────────────────────────────────────────────────────────────────
 
 model Website {
-  id             String        @id @default(cuid())
-  tenantId       String
-  businessId     String
-  templateId     String
-  name           String
-  slug           String
-  status         WebsiteStatus @default(DRAFT)
-  theme          Json // Customized theme (cloned from template, editable)
-  favicon        String?
-  seoTitle       String?
-  seoDescription String?
-  publishedAt    DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  business       Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  template       Template      @relation(fields: [templateId], references: [id])
-  pages          Page[]
+  id                String           @id @default(cuid())
+  tenantId          String
+  businessId        String
+  templateId        String
+  name              String
+  slug              String
+  status            WebsiteStatus    @default(DRAFT)
+  theme             Json // Customized theme (cloned from template, editable)
+  draftDocument     Json?            // Canonical V2 WebsiteDocument (Draft / Editing state)
+  publishedDocument Json?            // Canonical V2 WebsiteDocument (Live / Published snapshot)
+  schemaVersion     String           @default("2.0")
+  documentRevision  Int              @default(1)
+  favicon           String?
+  seoTitle          String?
+  seoDescription    String?
+  publishedAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  business          Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  template          Template         @relation(fields: [templateId], references: [id])
+  pages             Page[]
+  versions          WebsiteVersion[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
   @@index([businessId])
   @@index([slug])
+}
+
+model WebsiteVersion {
+  id            String   @id @default(cuid())
+  websiteId     String
+  document      Json
+  schemaVersion String   @default("2.0")
+  revision      Int      @default(1)
+  reason        String   @default("publish") // "publish" | "manual-save" | "restore" | "auto-backup"
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  website       Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId])
+  @@index([websiteId, revision])
+  @@index([createdAt])
 }
 
 model Page {

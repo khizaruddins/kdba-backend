@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsString,
   IsObject,
+  IsNumber,
   MaxLength,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -14,7 +15,7 @@ export class CreateWebsiteDto {
   @IsNotEmpty()
   businessId: string;
 
-  @ApiProperty({ description: 'Template ID to use' })
+  @ApiProperty({ description: 'Template ID or slug to use' })
   @IsString()
   @IsNotEmpty()
   templateId: string;
@@ -58,4 +59,68 @@ export class UpdateWebsiteDto {
   @Transform(({ value }) => (value === '' ? undefined : value))
   @MaxLength(500)
   seoDescription?: string;
+}
+
+export class SaveWebsiteDocumentDto {
+  @ApiProperty({ description: 'Full canonical WebsiteDocument JSON payload' })
+  @IsObject()
+  @IsNotEmpty()
+  document: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: 'Expected current revision number for optimistic concurrency control' })
+  @IsNumber()
+  @IsOptional()
+  expectedRevision?: number;
+}
+
+export class MutateWebsiteDocumentDto {
+  @ApiProperty({
+    description: 'Mutation type',
+    example: 'UPDATE_THEME',
+    enum: [
+      'UPDATE_THEME',
+      'UPDATE_BUSINESS',
+      'UPDATE_NAVIGATION',
+      'UPDATE_SEO',
+      'UPDATE_SETTINGS',
+      'UPDATE_SECTION_PROPS',
+      'UPDATE_SECTION_VARIANT',
+      'TOGGLE_SECTION',
+      'REORDER_SECTIONS',
+      'ADD_SECTION',
+      'REMOVE_SECTION',
+    ],
+  })
+  @IsString()
+  @IsNotEmpty()
+  type: string;
+
+  @ApiPropertyOptional({ description: 'Target Page ID (if applicable)' })
+  @IsString()
+  @IsOptional()
+  pageId?: string;
+
+  @ApiPropertyOptional({ description: 'Target Section ID (if applicable)' })
+  @IsString()
+  @IsOptional()
+  sectionId?: string;
+
+  @ApiProperty({ description: 'Mutation payload object' })
+  @IsObject()
+  @IsNotEmpty()
+  payload: Record<string, unknown>;
+}
+
+export class CreateVersionDto {
+  @ApiPropertyOptional({ example: 'Pre-holiday redesign', default: 'manual-save' })
+  @IsString()
+  @IsOptional()
+  reason?: string;
+}
+
+export class RestoreVersionDto {
+  @ApiProperty({ description: 'ID of the WebsiteVersion snapshot to restore' })
+  @IsString()
+  @IsNotEmpty()
+  versionId: string;
 }

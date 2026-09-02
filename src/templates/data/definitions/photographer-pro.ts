@@ -1,0 +1,170 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const photographerProTemplate = {
+  id: 'photographer-pro',
+  name: 'Editorial & Commercial Photography',
+  slug: 'photographer-pro',
+  description: 'Visual-forward photography portfolio with full-bleed imagery, lightbox galleries, client shoot packages, and booking inquiry workflows.',
+  category: 'PORTFOLIO',
+  previewImage: 'https://images.unsplash.com/photo-1554080353-a576cf803bda?w=800&auto=format&fit=crop&q=80',
+  style: ['minimal', 'dark', 'cinematic'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Julian Hayes Visuals',
+      businessType: 'photographer',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0a0a0a',
+      secondaryColor: '#ffffff',
+      accentColor: '#f59e0b',
+      backgroundColor: '#0a0a0a',
+      textColor: '#f5f5f5',
+      headingFont: 'Outfit',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Julian Hayes Visuals & Motion',
+      tagline: 'Editorial fashion, commercial campaigns & cinematic portraiture',
+      description: 'New York & Paris-based visual director producing campaigns for Vogue, Nike, and global luxury brands.',
+      category: 'Commercial & Editorial Photography',
+      email: 'booking@julianhayes.com',
+      phone: '+1 (212) 555-6710',
+      city: 'New York',
+      state: 'NY',
+      country: 'US',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Work', href: '/' },
+        { id: 'nav_2', label: 'Commercial', href: '/#portfolio' },
+        { id: 'nav_3', label: 'Editorial', href: '/#portfolio' },
+        { id: 'nav_4', label: 'About', href: '/#about' },
+        { id: 'nav_5', label: 'Book', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Client Portals',
+          links: [
+            { id: 'fl_1', label: 'Commercial Folio', href: '/#portfolio' },
+            { id: 'fl_2', label: 'Print Shop', href: '/' },
+            { id: 'fl_3', label: 'Rate Card 2026', href: '/#contact' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Inquire Shoot',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Folio',
+        slug: '/',
+        type: 'portfolio',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'minimal',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'JULIAN HAYES' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'fullscreen',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Hasselblad Master 2026',
+              headline: 'Cinematic Visuals That Transcend the Ordinary',
+              subheadline: 'Directing and capturing high-concept advertising, luxury campaigns, and authentic human narratives worldwide.',
+              primaryCtaText: 'View Selected Works',
+              primaryCtaUrl: '#portfolio',
+              imageUrl: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_portfolio',
+            type: 'portfolio',
+            variant: 'masonry',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Portfolio',
+              headline: 'Selected Editorial & Commercial Archives',
+              items: [
+                { title: 'Dior Haute Couture Series', category: 'Fashion Editorial', imageUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&auto=format&fit=crop&q=80' },
+                { title: 'Porsche 911 GT3 RS in the Alps', category: 'Automotive Commercial', imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80' },
+              ],
+            },
+          },
+          {
+            id: 'sec_about',
+            type: 'about',
+            variant: 'split-text-image',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Behind the Lens',
+              headline: 'Julian Hayes — Director & Photographer',
+              description: 'Over 14 years behind medium format lenses capturing global magazine covers, Cannes Lion-winning billboard campaigns, and intimate artist profiles.',
+              imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_clients',
+            type: 'logo-cloud',
+            variant: 'inline-row',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              headline: 'Trusted by Global Brands & Publications',
+              logos: ['VOGUE', 'NIKE', 'GQ', 'SONY MUSIC', 'BALENCIAGA'],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'simple-form',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Commission a Production or Campaign',
+              subheadline: 'For commercial inquiries, licensing, and availability.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'minimal-inline',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Julian Hayes Studio LLC. All rights reserved.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Julian Hayes — Commercial & Fashion Photography NYC',
+      metaDescription: 'New York & Paris commercial photographer and director for high-fashion, advertising, and luxury campaigns.',
+      keywords: ['fashion photographer', 'commercial photography nyc', 'advertising director', 'hasselblad master'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

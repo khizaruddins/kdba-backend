@@ -1,0 +1,191 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const agencyDigitalCreativeTemplate = {
+  id: 'agency-digital-creative',
+  name: 'Digital Creative & Brand Engineering Agency',
+  slug: 'agency-digital-creative',
+  description: 'High-impact digital product and brand engineering agency template with interactive work reels, service matrices, case studies, and client proof.',
+  category: 'AGENCY',
+  previewImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80',
+  style: ['bold', 'dark', 'futuristic'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Vortex Interactive Agency',
+      businessType: 'agency',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#09090b',
+      secondaryColor: '#ffffff',
+      accentColor: '#6366f1',
+      backgroundColor: '#09090b',
+      textColor: '#f8fafc',
+      headingFont: 'Plus Jakarta Sans',
+      bodyFont: 'Inter',
+      borderRadius: 'md',
+      shadows: 'dramatic',
+    },
+    business: {
+      name: 'Vortex Interactive Agency',
+      tagline: 'We build digital products, brand identities & conversion engines that scale',
+      description: 'Award-winning design & technology studio partnering with fast-scaling tech companies and global disruptors.',
+      category: 'Digital Product & Brand Agency',
+      email: 'hello@vortexinteractive.io',
+      phone: '+1 (415) 555-0199',
+      address: '500 Howard Street, Suite 400',
+      city: 'San Francisco',
+      state: 'CA',
+      country: 'US',
+      zipCode: '94105',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Work', href: '/#work' },
+        { id: 'nav_2', label: 'Services', href: '/#services' },
+        { id: 'nav_3', label: 'Culture', href: '/#about' },
+        { id: 'nav_4', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Capabilities',
+          links: [
+            { id: 'fl_1', label: 'Design Systems', href: '/#services' },
+            { id: 'fl_2', label: 'Fullstack Web Apps', href: '/#services' },
+            { id: 'fl_3', label: 'Brand Strategy', href: '/#services' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Start a Project',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'VORTEX // STUDIO' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Awwwards Agency of the Year Nominee',
+              headline: 'We Engineer High-Conversion Digital Products for Category Leaders',
+              subheadline: 'End-to-end design systems, Next.js web applications, and hyper-growth brand identities.',
+              primaryCtaText: 'Explore Case Studies',
+              primaryCtaUrl: '#work',
+              secondaryCtaText: 'Book Strategy Call',
+              secondaryCtaUrl: '#contact',
+              imageUrl: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_logos',
+            type: 'logo-cloud',
+            variant: 'inline-row',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              headline: 'Powering Digital Breakthroughs for Global Brands',
+              logos: ['STRIPE', 'LINEAR', 'VERCEL', 'SUPABASE', 'NOTION'],
+            },
+          },
+          {
+            id: 'sec_services',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Capabilities',
+              headline: 'Integrated Creative & Engineering',
+              items: [
+                { title: 'Brand Identity & Strategy', description: 'Logos, dynamic typography systems, design tokens, and comprehensive brand books.' },
+                { title: 'UI/UX & Product Design', description: 'Micro-interactions, high-fidelity Figma prototypes, and seamless user journeys.' },
+                { title: 'Full-Stack Engineering', description: 'Blazing fast Next.js apps, NestJS microservices, and high-security cloud architectures.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_work',
+            type: 'portfolio',
+            variant: 'grid-with-filters',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Recent Work',
+              headline: 'Proven Outcomes for Industry Leaders',
+              items: [
+                { title: 'Fintech Platform Re-Architecture', category: 'SaaS Platform', description: 'Scaled user conversions by 310% in 90 days.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80' },
+                { title: 'AI Autonomous Cloud Workspace', category: 'Product Design', description: 'Complete brand overhaul & web experience for Series B AI startup.', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80' },
+              ],
+            },
+          },
+          {
+            id: 'sec_stats',
+            type: 'stats',
+            variant: 'card-grid',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              items: [
+                { value: '$1.8B+', label: 'Client Valuations Raised' },
+                { value: '42', label: 'International Design Awards' },
+                { value: '99.8%', label: 'On-Time Project Delivery' },
+                { value: '3.4x', label: 'Average Client ROI' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'card-centered',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              headline: 'Have a High-Impact Project in Mind?',
+              subheadline: 'Let’s talk strategy, scope, and timelines.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 7,
+            props: {
+              copyright: '© 2026 Vortex Interactive Agency Inc.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Vortex Interactive — Digital Product & Brand Engineering Agency',
+      metaDescription: 'Award-winning digital design, Next.js engineering, and branding agency based in San Francisco.',
+      keywords: ['digital agency', 'branding agency', 'ui ux design studio', 'product engineering'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

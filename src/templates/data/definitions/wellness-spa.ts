@@ -1,0 +1,180 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const wellnessSpaTemplate = {
+  id: 'wellness-spa',
+  name: 'Zenith Holistic Spa & Thermal Sanctuary',
+  slug: 'wellness-spa',
+  description: 'Tranquil wellness sanctuary with thermal hydrotherapy circuits, botanical massage rituals, day packages, and serene aesthetics.',
+  category: 'CREATIVE',
+  previewImage: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&auto=format&fit=crop&q=80',
+  style: ['tranquil', 'zen', 'luxury'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Zenith Thermal Spa & Holistic Wellness',
+      businessType: 'wellness-spa',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#2b2d28',
+      secondaryColor: '#f5f3ef',
+      accentColor: '#606c38',
+      backgroundColor: '#faf8f5',
+      textColor: '#283618',
+      headingFont: 'Playfair Display',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'md',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Zenith Thermal Spa & Holistic Wellness',
+      tagline: 'Ancient thermal baths, organic botanical rituals & deep restoration',
+      description: 'An oasis of peace in Napa Valley featuring cedar saunas, mineral pools, sound baths, and bespoke body therapies.',
+      category: 'Luxury Day Spa & Thermal Baths',
+      email: 'sanctuary@zenithspa.com',
+      phone: '+1 (707) 555-8930',
+      address: '1100 Meadowood Lane',
+      city: 'St. Helena',
+      state: 'CA',
+      country: 'US',
+      zipCode: '94574',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Spa Rituals', href: '/#rituals' },
+        { id: 'nav_3', label: 'Thermal Baths', href: '/#thermal' },
+        { id: 'nav_4', label: 'Day Passes', href: '/#pricing' },
+        { id: 'nav_5', label: 'Reserve', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Rituals',
+          links: [
+            { id: 'fl_1', label: 'Hot Stone Therapy', href: '/#rituals' },
+            { id: 'fl_2', label: 'Herbal Detox Wrap', href: '/#rituals' },
+            { id: 'fl_3', label: 'Couples Sanctuary', href: '/#rituals' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Book Spa Day',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'transparent',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'ZENITH SPA' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'fullscreen',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Napa Valley Sanctuary',
+              headline: 'Restore Balance. Awaken the Senses.',
+              subheadline: 'Immerse in mineral-rich hot springs, organic aromatherapies, and restorative body rituals.',
+              primaryCtaText: 'Reserve Your Journey',
+              primaryCtaUrl: '#contact',
+              imageUrl: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_rituals',
+            type: 'treatment-grid',
+            variant: 'duration-pricing-list',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Holistic Menu',
+              headline: 'Signature Body & Facial Rituals',
+              items: [
+                { name: 'Volcanic Mineral Mud & Herbal Wrap', description: 'Purifying Napa clay infused with lavender and rosemary to detoxify skin.', duration: '90 min', price: '$260' },
+                { name: 'Sacred Cedar Deep Tissue Massage', description: 'Warming cedarwood oil, hot basalt stones, and rhythmic deep pressure.', duration: '75 min', price: '$225' },
+                { name: 'Rose Quartz Radiance Facial', description: 'Gua Sha sculpting with cold-pressed rosehip oil and botanical hydration.', duration: '60 min', price: '$195' },
+              ],
+            },
+          },
+          {
+            id: 'sec_thermal',
+            type: 'features',
+            variant: 'grid-3-col',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Thermal Circuit',
+              headline: 'Hydrotherapy Facilities Included with Every Treatment',
+              items: [
+                { title: 'Geothermal Mineral Pools', description: 'Naturally heated pools rich in magnesium, sulfur, and trace minerals.' },
+                { title: 'Nordic Eucalyptus Sauna', description: 'Hand-crafted Finnish pine sauna with aromatic crushed eucalyptus infusion.' },
+                { title: 'Crystal Salt Steam Room', description: 'Inhalation of ionizing Himalayan rock salt micro-particles for respiratory health.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_pricing',
+            type: 'pricing',
+            variant: '3-tier-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Day Experiences',
+              headline: 'Curated Spa Packages',
+              tiers: [
+                { name: 'Thermal Bath Pass', price: '$120', description: 'Full access to mineral pools, saunas, and relaxation lounge.', features: ['4-Hour Facility Access', 'Plush Robe & Sandal Service', 'Organic Herbal Tea Bar'] },
+                { name: 'Total Rejuvenation Package', price: '$380', description: 'Thermal circuit + 75min massage + 60min radiance facial + spa lunch.', features: ['All-Day Thermal Access', '75-Min Custom Massage', '60-Min Botanical Facial', 'Artisanal Vineyard Lunch'], isPopular: true },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Reserve Your Spa Experience',
+              subheadline: 'Our concierge team will confirm your appointments and preferences.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Zenith Thermal Spa LLC.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Zenith Spa — Napa Valley Thermal Baths & Holistic Wellness',
+      metaDescription: 'Experience healing mineral hot springs, restorative massage, and thermal saunas at Zenith Spa in St. Helena, CA.',
+      keywords: ['napa spa', 'thermal baths', 'holistic wellness', 'massage', 'day spa'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

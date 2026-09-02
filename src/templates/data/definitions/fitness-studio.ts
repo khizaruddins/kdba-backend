@@ -1,0 +1,185 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const fitnessStudioTemplate = {
+  id: 'fitness-studio',
+  name: 'High-Performance Fitness Studio & Gym',
+  slug: 'fitness-studio',
+  description: 'High-energy boutique gym template featuring coach profiles, group class schedules, membership pricing, and trial passes.',
+  category: 'CREATIVE',
+  previewImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
+  style: ['bold', 'dark', 'energetic'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Forge Performance Club',
+      businessType: 'fitness-studio',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#09090b',
+      secondaryColor: '#ffffff',
+      accentColor: '#f97316',
+      backgroundColor: '#09090b',
+      textColor: '#f4f4f5',
+      headingFont: 'Outfit',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'dramatic',
+    },
+    business: {
+      name: 'Forge Performance Club',
+      tagline: 'Elite strength, athletic conditioning & functional movement',
+      description: 'Austin’s premier strength training and athletic conditioning facility equipped with Olympic platforms, turf, and recovery saunas.',
+      category: 'Boutique Gym & Athletic Performance',
+      email: 'team@forgeperformance.fit',
+      phone: '+1 (512) 555-8392',
+      address: '2100 S Congress Ave',
+      city: 'Austin',
+      state: 'TX',
+      country: 'US',
+      zipCode: '78704',
+      businessHours: {
+        weekdays: { open: '05:00', close: '22:00' },
+        weekends: { open: '07:00', close: '20:00' },
+      },
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Classes', href: '/#classes' },
+        { id: 'nav_3', label: 'Coaches', href: '/#coaches' },
+        { id: 'nav_4', label: 'Memberships', href: '/#memberships' },
+        { id: 'nav_5', label: 'Free Pass', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Programs',
+          links: [
+            { id: 'fl_1', label: 'Strength & Conditioning', href: '/#classes' },
+            { id: 'fl_2', label: 'HIIT Turf Workouts', href: '/#classes' },
+            { id: 'fl_3', label: 'Personal Training', href: '/#coaches' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Claim Free Pass',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'FORGE CLUB' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'fullscreen',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Austin’s #1 Athletic Performance Gym',
+              headline: 'Build Relentless Strength & Peak Conditioning',
+              subheadline: 'World-class coaches, cutting-edge equipment, cold plunges, and a community built to push limits.',
+              primaryCtaText: 'Claim Your 3-Day Pass',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'View Class Schedule',
+              secondaryCtaUrl: '#classes',
+              imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_classes',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Signature Formats',
+              headline: 'Engineered for Performance',
+              items: [
+                { title: 'Barbell & Strength Lab', description: 'Periodized squat, bench, and deadlift progressions overseen by certified USAW coaches.' },
+                { title: 'MetCon Turf Intervals', description: 'High-intensity athletic conditioning combining sled pushes, rowers, kettlebells, and sprints.' },
+                { title: 'Functional Mobility & Recovery', description: 'Dedicated joint mobility, yoga flow, infrared sauna, and contrast plunge sessions.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_coaches',
+            type: 'trainer-grid',
+            variant: 'fitness-coaches-grid',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Elite Staff',
+              headline: 'Coaches Who Lead from the Front',
+              items: [
+                { name: 'Marcus Brody, CSCS', title: 'Head Strength Coach', bio: 'Former Division 1 Strength Coordinator with 12+ years coaching Olympic lifters.' },
+                { name: 'Valerie Stone', title: 'Endurance & MetCon Director', bio: 'Ultra-marathoner and CrossFit Games regional competitor specializing in conditioning.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_pricing',
+            type: 'pricing',
+            variant: '3-tier-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'No Contracts',
+              headline: 'Simple, Transparent Memberships',
+              tiers: [
+                { name: 'Gym & Recovery Access', price: '$149/mo', description: 'Full access to open gym floor, weights, turf, and recovery saunas.', features: ['Open Gym Access 5am-10pm', 'Locker & Towel Service', 'Infrared Sauna Access'] },
+                { name: 'Unlimited Classes & Training', price: '$229/mo', description: 'Unlimited access to all coaching classes + open gym + monthly body composition scans.', features: ['Unlimited Strength & MetCon Classes', 'Open Gym 7 Days/Wk', 'Monthly InBody 570 Scan', 'Priority Class Booking'], isPopular: true },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'card-centered',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Claim Your 3-Day Free VIP Pass',
+              subheadline: 'Experience the Forge difference firsthand. No credit card required.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'brand-focused',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Forge Performance Club Austin. All rights reserved.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Forge Performance Club — Austin Strength Gym & Classes',
+      metaDescription: 'Austin’s premier athletic gym with Olympic lifting, turf conditioning, infrared saunas, and elite coaching.',
+      keywords: ['austin gym', 'strength training', 'performance fitness', 'gym membership austin'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

@@ -1,0 +1,166 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const interiorDesignLuxuryTemplate = {
+  id: 'interior-design-luxury',
+  name: 'Luxury Interior Architecture & Styling',
+  slug: 'interior-design-luxury',
+  description: 'Haute interior design and staging portfolio featuring bespoke residential estates, luxury hospitality, and custom furnishing curation.',
+  category: 'CREATIVE',
+  previewImage: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&auto=format&fit=crop&q=80',
+  style: ['luxury', 'warm', 'editorial'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Atelier Valmont Interiors',
+      businessType: 'interior-design',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#1c1917',
+      secondaryColor: '#f5f5f4',
+      accentColor: '#a16207',
+      backgroundColor: '#fafaf9',
+      textColor: '#292524',
+      headingFont: 'Playfair Display',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Atelier Valmont Interiors',
+      tagline: 'Refined materiality, architectural lighting & tailored living spaces',
+      description: 'Creating bespoke high-end interiors that balance timeless Parisian elegance with modern architectural clarity.',
+      category: 'Luxury Interior Architecture',
+      email: 'concierge@ateliervalmont.com',
+      phone: '+1 (310) 555-9944',
+      address: '8687 Melrose Avenue, Suite B400',
+      city: 'West Hollywood',
+      state: 'CA',
+      country: 'US',
+      zipCode: '90069',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Portfolio', href: '/#portfolio' },
+        { id: 'nav_3', label: 'Services', href: '/#services' },
+        { id: 'nav_4', label: 'Process', href: '/#process' },
+        { id: 'nav_5', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Design Practice',
+          links: [
+            { id: 'fl_1', label: 'Residential Estates', href: '/#portfolio' },
+            { id: 'fl_2', label: 'Boutique Hospitality', href: '/#portfolio' },
+            { id: 'fl_3', label: 'Custom Millwork', href: '/#services' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Inquire Project',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'transparent',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'ATELIER VALMONT' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'editorial',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Architectural Digest AD100 Honoree',
+              headline: 'Sanctuaries of Quiet Elegance & Timeless Craft',
+              subheadline: 'Full-service interior architecture and custom furnishing curation for discerning homeowners and luxury developers.',
+              primaryCtaText: 'View Interior Monograph',
+              primaryCtaUrl: '#portfolio',
+              secondaryCtaText: 'Request Design Consultation',
+              secondaryCtaUrl: '#contact',
+              imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_portfolio',
+            type: 'portfolio',
+            variant: 'masonry',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Selected Residences',
+              headline: 'Recent Interior Commissions',
+              items: [
+                { title: 'The Bel Air Minimalist Villa', category: 'Residential', description: 'Travertine finishes, fluted walnut millwork, and custom linen furnishings.', imageUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&auto=format&fit=crop&q=80' },
+                { title: 'Tribeca Cast-Iron Loft', category: 'Penthouse', description: 'Restored exposed brick, blackened steel, and curated Scandinavian antiques.', imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&auto=format&fit=crop&q=80' },
+              ],
+            },
+          },
+          {
+            id: 'sec_process',
+            type: 'process',
+            variant: 'step-numbers',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'The Journey',
+              headline: 'How We Transform Your Space',
+              steps: [
+                { step: '01', title: 'Conceptual Discovery & Vision', description: 'Spatial analysis, lifestyle mapping, and tactile material palette selection.' },
+                { step: '02', title: 'Architectural Drawings & 3D Renderings', description: 'Photorealistic CGI lighting models and detailed construction documentation.' },
+                { step: '03', title: 'Artisan Procurement & White-Glove Installation', description: 'Custom Italian millwork fabrication, art curation, and turnkey delivery.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              headline: 'Begin Your Interior Transformation',
+              subheadline: 'Schedule a private consultation at our West Hollywood design studio.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              copyright: '© 2026 Atelier Valmont Interiors LLC.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Atelier Valmont — Luxury Interior Architecture & Design',
+      metaDescription: 'Bespoke interior design, architectural millwork, and luxury styling in Los Angeles, New York, and London.',
+      keywords: ['luxury interior designer', 'interior architecture', 'ad100 designer', 'bespoke furniture'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

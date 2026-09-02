@@ -1,0 +1,182 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const salonPremiumTemplate = {
+  id: 'salon-premium',
+  name: 'Luxury Hair Salon & Aesthetic Bar',
+  slug: 'salon-premium',
+  description: 'High-end beauty salon template featuring master stylists, lookbook hair/color gallery, treatment menu, and direct appointment booking.',
+  category: 'CREATIVE',
+  previewImage: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80',
+  style: ['luxury', 'editorial', 'glamour'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Maison Lumière Hair & Aesthetics',
+      businessType: 'salon',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#18181b',
+      secondaryColor: '#fafafa',
+      accentColor: '#e11d48',
+      backgroundColor: '#ffffff',
+      textColor: '#18181b',
+      headingFont: 'Playfair Display',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Maison Lumière Hair & Aesthetics',
+      tagline: 'Artisanal balayage, precision styling & couture hair wellness',
+      description: 'Beverly Hills premier salon specializing in bespoke color formulation, Russian extensions, and keratin therapies.',
+      category: 'Luxury Hair Salon & Aesthetics',
+      email: 'concierge@maisonlumiere.com',
+      phone: '+1 (310) 555-4389',
+      address: '9460 Wilshire Blvd, Suite 200',
+      city: 'Beverly Hills',
+      state: 'CA',
+      country: 'US',
+      zipCode: '90212',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Services', href: '/#services' },
+        { id: 'nav_3', label: 'Lookbook', href: '/#lookbook' },
+        { id: 'nav_4', label: 'Stylists', href: '/#team' },
+        { id: 'nav_5', label: 'Appointments', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Signature Services',
+          links: [
+            { id: 'fl_1', label: 'French Balayage', href: '/#services' },
+            { id: 'fl_2', label: 'Couture Extensions', href: '/#services' },
+            { id: 'fl_3', label: 'Bridal Styling', href: '/#services' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Book Stylist',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'transparent',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'MAISON LUMIÈRE' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'editorial',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Beverly Hills Salon of the Year',
+              headline: 'Where Artistry Meets Luxury Hair Transformation',
+              subheadline: 'Bespoke custom coloring, precision dry cuts, and restorative treatments by master European stylists.',
+              primaryCtaText: 'Reserve Your Experience',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'View Lookbook',
+              secondaryCtaUrl: '#lookbook',
+              imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_services',
+            type: 'treatment-grid',
+            variant: 'spa-menu-cards',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Salon Menu',
+              headline: 'Signature Hair & Color Rituals',
+              items: [
+                { name: 'Custom French Balayage & Gloss', description: 'Hand-painted multidimensional blonde/brunette highlights with bonding treatment.', duration: '180 min', price: 'From $350' },
+                { name: 'Precision Couture Cut & Blowout', description: 'Personalized hair architecture tailored to face shape and hair density.', duration: '75 min', price: 'From $165' },
+                { name: 'Luxury Keratin Silk Infusion', description: 'Formaldehyde-free smoothing therapy eliminating 95% frizz with mirror shine.', duration: '150 min', price: 'From $420' },
+              ],
+            },
+          },
+          {
+            id: 'sec_lookbook',
+            type: 'gallery',
+            variant: 'grid-masonry',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Our Work',
+              headline: 'The Lookbook',
+              images: [
+                'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=600&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600&auto=format&fit=crop&q=80',
+                'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=600&auto=format&fit=crop&q=80',
+              ],
+            },
+          },
+          {
+            id: 'sec_team',
+            type: 'team',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Artists',
+              headline: 'Meet Our Master Stylists',
+              items: [
+                { name: 'Laurent Mercier', role: 'Creative Director & Master Colorist', bio: 'Former Paris Fashion Week stylist with 15+ years editorial color artistry.' },
+                { name: 'Sienna Dubois', role: 'Extension & Blonde Specialist', bio: 'Celebrity extension expert certified in invisible bead & micro-keratin methods.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Request Your Private Appointment',
+              subheadline: 'Select your preferred stylist, service, and time.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Maison Lumière Beverly Hills. All rights reserved.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Maison Lumière — Luxury Hair Salon Beverly Hills',
+      metaDescription: 'Beverly Hills master balayage, extensions, and couture styling at Maison Lumière. Book online today.',
+      keywords: ['beverly hills salon', 'luxury hair color', 'french balayage', 'hair extensions'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

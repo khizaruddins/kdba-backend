@@ -1,0 +1,165 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const schoolModernTemplate = {
+  id: 'school-modern',
+  name: 'Modern International Academy & Campus',
+  slug: 'school-modern',
+  description: 'Progressive private school template with academic program tracks, campus tour booking, faculty showcase, and admissions portal.',
+  category: 'PROFESSIONAL',
+  previewImage: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=800&auto=format&fit=crop&q=80',
+  style: ['modern', 'friendly', 'vibrant'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Beacon Hill International Academy',
+      businessType: 'school',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#1e3a8a',
+      secondaryColor: '#eff6ff',
+      accentColor: '#f59e0b',
+      backgroundColor: '#ffffff',
+      textColor: '#1e293b',
+      headingFont: 'Plus Jakarta Sans',
+      bodyFont: 'Inter',
+      borderRadius: 'lg',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Beacon Hill International Academy',
+      tagline: 'Inspiring curious minds, global citizenship & STEM innovation',
+      description: 'Pre-K through Grade 12 progressive international baccalaureate school cultivating creative problem solvers and ethical global leaders.',
+      category: 'K-12 Independent Academy',
+      email: 'admissions@beaconhillacademy.edu',
+      phone: '+1 (617) 555-0230',
+      address: '45 Beacon Hill Road',
+      city: 'Boston',
+      state: 'MA',
+      country: 'US',
+      zipCode: '02108',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Academics', href: '/#academics' },
+        { id: 'nav_2', label: 'Campus Life', href: '/#campus' },
+        { id: 'nav_3', label: 'Faculty', href: '/#faculty' },
+        { id: 'nav_4', label: 'Admissions', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Divisions',
+          links: [
+            { id: 'fl_1', label: 'Primary School (Pre-K - 5)', href: '/#academics' },
+            { id: 'fl_2', label: 'Middle School (6 - 8)', href: '/#academics' },
+            { id: 'fl_3', label: 'IB Diploma Upper School (9 - 12)', href: '/#academics' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Book Campus Tour',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'BEACON HILL ACADEMY' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Admissions Open for 2026-2027 Academic Year',
+              headline: 'Empowering the Next Generation of Global Innovators',
+              subheadline: 'An inquiry-based International Baccalaureate curriculum combining advanced STEM laboratories, arts conservatory, and competitive athletics.',
+              primaryCtaText: 'Schedule a Campus Visit',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'Explore Academics',
+              secondaryCtaUrl: '#academics',
+              imageUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_stats',
+            type: 'stats',
+            variant: 'card-grid',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              items: [
+                { value: '100%', label: 'University Acceptance' },
+                { value: '7:1', label: 'Student-to-Faculty Ratio' },
+                { value: '38', label: 'Nationalities Represented' },
+                { value: '$4.5M', label: 'Annual Merit Scholarships Awarded' },
+              ],
+            },
+          },
+          {
+            id: 'sec_academics',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Educational Pillars',
+              headline: 'World-Class Academic Pathways',
+              items: [
+                { title: 'International Baccalaureate (IB) Diploma', description: 'Rigorous dual-diploma program recognized by top universities across the globe.' },
+                { title: 'Robotics & Advanced STEM Lab', description: 'State-of-the-art makerspace with 3D fabrication, AI algorithms, and bio-tech research.' },
+                { title: 'Performing Arts & Visual Conservatory', description: 'Orchestral suites, black box theater, and fine art studios instructed by working masters.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              headline: 'Schedule a Private Family Campus Tour',
+              subheadline: 'Meet with our Director of Admissions and explore our 40-acre historic campus.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              copyright: '© 2026 Beacon Hill International Academy. All rights reserved.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Beacon Hill International Academy — K-12 IB World School Boston',
+      metaDescription: 'Top-tier independent K-12 IB World School in Boston offering STEM innovation, arts conservatory, and college preparatory excellence.',
+      keywords: ['boston private school', 'ib world school', 'independent academy', 'k12 education'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

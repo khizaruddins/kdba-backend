@@ -1,1 +1,1 @@
-export { CreateWebsiteDto, UpdateWebsiteDto } from './website.dto';
+export * from './website.dto';

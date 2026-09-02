@@ -1,0 +1,181 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const lawFirmTemplate = {
+  id: 'law-firm',
+  name: 'Corporate & Litigation Law Firm',
+  slug: 'law-firm',
+  description: 'Distinguished legal practice template featuring practice area breakdowns, partner attorney credentials, case verdicts, and confidential consultation forms.',
+  category: 'PROFESSIONAL',
+  previewImage: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80',
+  style: ['prestigious', 'traditional', 'authoritative'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Blackwood & Vance LLP',
+      businessType: 'law-firm',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0b132b',
+      secondaryColor: '#f8f9fa',
+      accentColor: '#c29b38',
+      backgroundColor: '#ffffff',
+      textColor: '#1c2541',
+      headingFont: 'Playfair Display',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'none',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Blackwood & Vance LLP',
+      tagline: 'Formidable corporate defense, commercial litigation & cross-border transactions',
+      description: 'National trial lawyers and corporate counselors protecting corporate assets, intellectual property, and executive leadership.',
+      category: 'Corporate Defense & Commercial Litigation',
+      email: 'counsel@blackwoodvance.com',
+      phone: '+1 (202) 555-0188',
+      address: '1001 Pennsylvania Avenue NW, Suite 1100',
+      city: 'Washington',
+      state: 'DC',
+      country: 'US',
+      zipCode: '20004',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Home', href: '/' },
+        { id: 'nav_2', label: 'Practices', href: '/#practices' },
+        { id: 'nav_3', label: 'Attorneys', href: '/#attorneys' },
+        { id: 'nav_4', label: 'Results', href: '/#results' },
+        { id: 'nav_5', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Core Practices',
+          links: [
+            { id: 'fl_1', label: 'Complex Commercial Litigation', href: '/#practices' },
+            { id: 'fl_2', label: 'Cross-Border M&A', href: '/#practices' },
+            { id: 'fl_3', label: 'White Collar Defense', href: '/#practices' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Schedule Consultation',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'BLACKWOOD & VANCE' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Chambers USA Band 1 Ranked Trial Practice',
+              headline: 'Unwavering Advocacy. Formidable Legal Precision.',
+              subheadline: 'Representing global corporations, financial institutions, and high-net-worth individuals in high-stakes disputes and complex transactions.',
+              primaryCtaText: 'Request Legal Consultation',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'View Practice Areas',
+              secondaryCtaUrl: '#practices',
+              imageUrl: 'https://images.unsplash.com/photo-1505664194779-8beaceb93744?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_results',
+            type: 'stats',
+            variant: 'card-grid',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              items: [
+                { value: '$4.2B+', label: 'Verdicts & Settlements Recovered' },
+                { value: '35+', label: 'Years Serving Corporate Clients' },
+                { value: '98%', label: 'Trial Success Rate' },
+                { value: 'Tier 1', label: 'U.S. News Best Law Firms' },
+              ],
+            },
+          },
+          {
+            id: 'sec_practices',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Our Capabilities',
+              headline: 'Areas of Legal Practice',
+              items: [
+                { title: 'Commercial Litigation & Arbitration', description: 'Aggressive trial representation in antitrust, breach of contract, shareholder disputes, and class actions.' },
+                { title: 'Mergers, Acquisitions & Securities', description: 'Navigating regulatory clearance, SEC filings, private equity structuring, and cross-border ventures.' },
+                { title: 'Intellectual Property Defense', description: 'Patent infringement litigation, trademark enforcement, and trade secret protection for tech innovators.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_attorneys',
+            type: 'team',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Counsel',
+              headline: 'Partner Attorneys',
+              items: [
+                { name: 'Raymond Blackwood, Esq.', role: 'Senior Managing Partner', bio: 'Former Federal Prosecutor and Fellow of the American College of Trial Lawyers.' },
+                { name: 'Victoria Vance, JD, LLM', role: 'Partner — Head of Corporate M&A', bio: 'Harvard Law graduate with 20+ years leading multinational equity acquisitions.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Retain Our Legal Counsel',
+              subheadline: 'All communications are protected under strict attorney-client privilege.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Blackwood & Vance LLP. Attorney Advertising.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Blackwood & Vance LLP — Corporate Defense & Litigation Washington DC',
+      metaDescription: 'Chambers Band 1 ranked law firm in Washington DC specializing in complex commercial litigation and M&A.',
+      keywords: ['corporate law firm', 'commercial litigation dc', 'trial attorneys', 'm&a law firm'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

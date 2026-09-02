@@ -1,0 +1,165 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const automotiveDetailingTemplate = {
+  id: 'automotive-detailing',
+  name: 'Exotic Auto Detailing & PPF Studio',
+  slug: 'automotive-detailing',
+  description: 'Precision automotive detailing studio featuring paint protection film (PPF), ceramic coatings, exotic car gallery, and package pricing.',
+  category: 'BUSINESS',
+  previewImage: 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=800&auto=format&fit=crop&q=80',
+  style: ['bold', 'dark', 'sleek'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Apex Auto Shield & Detailing',
+      businessType: 'automotive',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#09090b',
+      secondaryColor: '#ffffff',
+      accentColor: '#dc2626',
+      backgroundColor: '#09090b',
+      textColor: '#f4f4f5',
+      headingFont: 'Outfit',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'sm',
+      shadows: 'dramatic',
+    },
+    business: {
+      name: 'Apex Auto Shield & Precision Detailing',
+      tagline: 'Paint protection film, multi-stage paint correction & ceramic coatings for exotic vehicles',
+      description: 'Scottsdale’s premier clean-room automotive protection facility certified in XPEL Ultimate Plus PPF and Gtechniq ceramic coatings.',
+      category: 'Exotic Automotive Protection Studio',
+      email: 'scottsdale@apexautoshield.com',
+      phone: '+1 (480) 555-8940',
+      address: '8400 E Greenway Road, Suite 104',
+      city: 'Scottsdale',
+      state: 'AZ',
+      country: 'US',
+      zipCode: '85260',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Services', href: '/#services' },
+        { id: 'nav_2', label: 'Packages', href: '/#pricing' },
+        { id: 'nav_3', label: 'Exotics Gallery', href: '/#gallery' },
+        { id: 'nav_4', label: 'Contact', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Protection Services',
+          links: [
+            { id: 'fl_1', label: 'XPEL Full Body PPF', href: '/#services' },
+            { id: 'fl_2', label: 'Multi-Stage Paint Correction', href: '/#services' },
+            { id: 'fl_3', label: '9H Ceramic Coating', href: '/#services' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Get Free Estimate',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'APEX AUTO SHIELD' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Certified XPEL Platinum Protection Studio',
+              headline: 'Flawless Paint Correction & Self-Healing PPF for Supercars',
+              subheadline: 'Protect your automotive investment from rock chips, swirl marks, and UV damage in our dust-free climate controlled studio.',
+              primaryCtaText: 'Request Vehicle Quote',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'View Studio Packages',
+              secondaryCtaUrl: '#pricing',
+              imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_services',
+            type: 'services',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Master Services',
+              headline: 'Comprehensive Surface Protection',
+              items: [
+                { title: 'XPEL Ultimate Plus Paint Protection Film', description: 'Self-healing 8-mil urethane film with precision computer-cut templates for invisible edge-wrapped coverage.' },
+                { title: 'Multi-Stage Paint Correction', description: 'Eliminating 95%+ of swirl marks, holograms, and oxidation using rotary polishers and microscopic depth gauges.' },
+                { title: '9H Multi-Layer Ceramic Coating', description: 'Extreme hydrophobic gloss, chemical resistance, and 5-year warrantied protection for paint, wheels, and glass.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_pricing',
+            type: 'pricing',
+            variant: '3-tier-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Studio Packages',
+              headline: 'Investment Protection Plans',
+              tiers: [
+                { name: 'Track Pack PPF', price: '$2,400', description: 'Full front clip protection against highway rock chips.', features: ['Full Bumper & Hood', 'Fenders & Headlights', 'Side Mirrors', '10-Year XPEL Warranty'] },
+                { name: 'Full Vehicle Stealth / Gloss PPF', price: '$6,800', description: 'Complete 100% body wrap with hand-tucked seamless edges.', features: ['Full Body Panel Coverage', 'Wrapped & Tucked Edges', 'Complimentary Ceramic Coating on Top', '10-Year Warranty'], isPopular: true },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              headline: 'Schedule Your Vehicle Drop-Off or Estimate',
+              subheadline: 'Enclosed trailer vehicle pick-up and delivery available throughout Arizona.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'brand-focused',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              copyright: '© 2026 Apex Auto Shield & Precision Detailing LLC.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Apex Auto Shield — Scottsdale Paint Protection Film & Ceramic Coatings',
+      metaDescription: 'Scottsdale’s premier supercar detailing studio specializing in XPEL PPF, paint correction, and ceramic coatings.',
+      keywords: ['ppf scottsdale', 'ceramic coating', 'paint correction', 'exotic car detailing'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

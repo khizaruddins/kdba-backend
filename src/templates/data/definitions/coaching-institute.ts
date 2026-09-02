@@ -1,0 +1,180 @@
+import { WebsiteDocument } from '../../../documents/types/document.types';
+
+export const coachingInstituteTemplate = {
+  id: 'coaching-institute',
+  name: 'Executive Coaching & Leadership Institute',
+  slug: 'coaching-institute',
+  description: 'High-caliber executive leadership institute template with course grids, alumni outcomes, curriculum modules, and enrollment applications.',
+  category: 'PROFESSIONAL',
+  previewImage: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&auto=format&fit=crop&q=80',
+  style: ['modern', 'authoritative', 'inspiring'],
+  version: '1.0',
+  document: {
+    schemaVersion: '2.0',
+    site: {
+      name: 'Vanguard Executive Leadership Academy',
+      businessType: 'education',
+      language: 'en',
+    },
+    theme: {
+      primaryColor: '#0f172a',
+      secondaryColor: '#f8fafc',
+      accentColor: '#4f46e5',
+      backgroundColor: '#ffffff',
+      textColor: '#1e293b',
+      headingFont: 'Outfit',
+      bodyFont: 'Plus Jakarta Sans',
+      borderRadius: 'md',
+      shadows: 'subtle',
+    },
+    business: {
+      name: 'Vanguard Executive Leadership Academy',
+      tagline: 'Master modern C-suite leadership, high-stakes negotiation & strategic decision-making',
+      description: 'Intensive cohort-based executive masterclasses for directors, founders, and VP-level executives scaling high-growth enterprises.',
+      category: 'Executive Education & Coaching',
+      email: 'admissions@vanguardleaders.org',
+      phone: '+1 (617) 555-9830',
+      address: '100 Cambridge Street, 14th Floor',
+      city: 'Boston',
+      state: 'MA',
+      country: 'US',
+      zipCode: '02114',
+    },
+    navigation: {
+      header: [
+        { id: 'nav_1', label: 'Programs', href: '/#courses' },
+        { id: 'nav_2', label: 'Curriculum', href: '/#curriculum' },
+        { id: 'nav_3', label: 'Faculty', href: '/#faculty' },
+        { id: 'nav_4', label: 'Alumni', href: '/#testimonials' },
+        { id: 'nav_5', label: 'Apply', href: '/#contact' },
+      ],
+      footer: [
+        {
+          title: 'Executive Cohorts',
+          links: [
+            { id: 'fl_1', label: 'C-Suite Strategy Masterclass', href: '/#courses' },
+            { id: 'fl_2', label: 'High-Stakes Negotiation Lab', href: '/#courses' },
+            { id: 'fl_3', label: '1-on-1 Founder Coaching', href: '/#courses' },
+          ],
+        },
+      ],
+      ctaButton: {
+        label: 'Apply for Cohort',
+        href: '/#contact',
+        variant: 'primary',
+      },
+    },
+    pages: [
+      {
+        id: 'page_home',
+        title: 'Home',
+        slug: '/',
+        type: 'home',
+        sortOrder: 0,
+        enabled: true,
+        sections: [
+          {
+            id: 'sec_nav',
+            type: 'navbar',
+            variant: 'standard',
+            enabled: true,
+            sortOrder: 0,
+            props: { brandName: 'VANGUARD ACADEMY' },
+          },
+          {
+            id: 'sec_hero',
+            type: 'hero',
+            variant: 'split-image',
+            enabled: true,
+            sortOrder: 1,
+            props: {
+              badge: 'Next Cohort Starting Fall 2026',
+              headline: 'Accelerate Your Leadership Impact at the Highest Level',
+              subheadline: 'Join an exclusive community of senior executives mastering strategic governance, organizational influence, and high-stakes negotiation.',
+              primaryCtaText: 'Submit Application',
+              primaryCtaUrl: '#contact',
+              secondaryCtaText: 'Download Syllabus',
+              secondaryCtaUrl: '#courses',
+              imageUrl: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&auto=format&fit=crop&q=80',
+            },
+          },
+          {
+            id: 'sec_courses',
+            type: 'course-grid',
+            variant: 'curriculum-cards',
+            enabled: true,
+            sortOrder: 2,
+            props: {
+              badge: 'Flagship Programs',
+              headline: 'Cohort-Based Executive Programs',
+              courses: [
+                { title: 'The Chief Executive Fellowship', duration: '8 Weeks • Live Virtual + Boston Summit', level: 'VP & C-Suite', description: 'Deep dive into capital allocation, crisis leadership, and scaling global executive teams.' },
+                { title: 'High-Stakes Negotiation & Dealmaking', duration: '4 Weeks • Live Simulations', level: 'Directors & Partners', description: 'Advanced behavioral psychology, multi-party leverage, and term sheet structuring.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_faculty',
+            type: 'team',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 3,
+            props: {
+              badge: 'Instructors',
+              headline: 'Learn from Proven Fortune 500 Leaders',
+              items: [
+                { name: 'Dr. Gregory Vance, PhD', role: 'Dean of Executive Programs', bio: 'Former Harvard Business School Professor and Senior Advisor to Fortune 50 boards.' },
+                { name: 'Miranda Chen', role: 'Former Chief People Officer', bio: 'Architect of scale for two hyper-growth decacorns through their respective IPOs.' },
+              ],
+            },
+          },
+          {
+            id: 'sec_testimonials',
+            type: 'testimonials',
+            variant: 'grid-cards',
+            enabled: true,
+            sortOrder: 4,
+            props: {
+              badge: 'Alumni Impact',
+              headline: 'Transformational Career Acceleration',
+              items: [
+                { quote: 'The framework on capital allocation and board governance gave me the confidence to steer our Series C expansion seamlessly.', author: 'David Morales', role: 'CEO, Nexa Robotics' },
+                { quote: 'The caliber of peers in the cohort alone was worth 10x the investment.', author: 'Sarah Jenkins', role: 'SVP Product, Global Media' },
+              ],
+            },
+          },
+          {
+            id: 'sec_contact',
+            type: 'contact',
+            variant: 'split-form-map',
+            enabled: true,
+            sortOrder: 5,
+            props: {
+              headline: 'Apply for the Upcoming Leadership Cohort',
+              subheadline: 'Cohorts are limited to 30 fellows to ensure intimate case study simulations.',
+            },
+          },
+          {
+            id: 'sec_footer',
+            type: 'footer',
+            variant: 'multi-column-detailed',
+            enabled: true,
+            sortOrder: 6,
+            props: {
+              copyright: '© 2026 Vanguard Executive Leadership Academy LLC.',
+            },
+          },
+        ],
+      },
+    ],
+    seo: {
+      metaTitle: 'Vanguard Academy — Executive Leadership & C-Suite Coaching',
+      metaDescription: 'Cohort-based executive coaching and negotiation masterclasses for senior directors and C-suite leaders.',
+      keywords: ['executive coaching', 'leadership masterclass', 'c-suite training', 'executive education'],
+    },
+    settings: {
+      enableContactForm: true,
+      language: 'en',
+    },
+  },
+} as const;

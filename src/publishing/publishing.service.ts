@@ -2,87 +2,40 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { DocumentMigrationService } from '../documents/services/document-migration.service';
+import { WebsitesService } from '../websites/websites.service';
 import { CreateLeadDto } from '../leads/dto/lead.dto';
+import { WebsiteDocument } from '../documents/types/document.types';
 
 @Injectable()
 export class PublishingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly migrationService: DocumentMigrationService,
+    private readonly websitesService: WebsitesService,
+  ) {}
 
   /**
-   * Publish a website:
-   * 1. Copies draftConfig -> publishedConfig for all sections across all pages
-   * 2. Sets website.status = 'PUBLISHED' and publishedAt = now()
+   * Publish a website (promotes draft to live published document, creates version snapshot).
    */
   async publish(websiteId: string, tenantId: string) {
-    const website = await this.prisma.website.findUnique({
-      where: { id: websiteId },
-      include: {
-        pages: {
-          include: {
-            sections: true,
-          },
-        },
-      },
-    });
-
-    if (!website) {
-      throw new NotFoundException('Website not found');
-    }
-
-    if (website.tenantId !== tenantId) {
-      throw new ForbiddenException('Access denied');
-    }
-
-    // Atomic transaction to copy draftConfig to publishedConfig
-    return this.prisma.$transaction(async (tx) => {
-      for (const page of website.pages) {
-        for (const section of page.sections) {
-          await tx.section.update({
-            where: { id: section.id },
-            data: {
-              publishedConfig: section.draftConfig as object,
-            },
-          });
-        }
-      }
-
-      return tx.website.update({
-        where: { id: websiteId },
-        data: {
-          status: 'PUBLISHED',
-          publishedAt: new Date(),
-        },
-        include: {
-          pages: {
-            include: {
-              sections: {
-                orderBy: { sortOrder: 'asc' },
-              },
-            },
-            orderBy: { sortOrder: 'asc' },
-          },
-          business: true,
-        },
-      });
-    });
+    return this.websitesService.publish(websiteId, tenantId);
   }
 
   /**
    * Public website resolver:
    * Resolves published website data by tenant slug or website slug.
-   * Returns clean, public-only configuration including business, pages, published sections, products, and pricing.
+   * Returns clean, public-only configuration including canonical WebsiteDocument,
+   * business, pages, products, and pricing.
    */
   async getPublicWebsite(slug: string) {
-    // Look up by tenant slug first, or website slug
+    // 1. Look up by tenant slug first
     const tenant = await this.prisma.tenant.findUnique({
       where: { slug },
       include: {
-        businesses: {
-          take: 1,
-        },
+        businesses: { take: 1 },
         websites: {
           include: {
             pages: {
@@ -95,14 +48,7 @@ export class PublishingService {
               },
               orderBy: { sortOrder: 'asc' },
             },
-            template: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                category: true,
-              },
-            },
+            template: true,
           },
           take: 1,
         },
@@ -117,93 +63,93 @@ export class PublishingService {
       },
     });
 
-    if (!tenant || !tenant.websites || tenant.websites.length === 0) {
-      // Fallback check: look for website directly by slug
-      const website = await this.prisma.website.findFirst({
-        where: { slug },
-        include: {
-          tenant: {
-            include: {
-              products: {
-                where: { isActive: true },
-                orderBy: { sortOrder: 'asc' },
-              },
-              pricingPlans: {
-                where: { isActive: true },
-                orderBy: { sortOrder: 'asc' },
-              },
-            },
-          },
-          business: true,
-          pages: {
-            where: { isActive: true },
-            include: {
-              sections: {
-                where: { enabled: true },
-                orderBy: { sortOrder: 'asc' },
-              },
-            },
-            orderBy: { sortOrder: 'asc' },
-          },
-          template: true,
-        },
-      });
-
-      if (!website) {
-        throw new NotFoundException('Website not found');
-      }
-
-      if (
-        website.tenant.status === 'BLOCKED' ||
-        website.tenant.status === 'SUSPENDED'
-      ) {
+    if (tenant && tenant.websites && tenant.websites.length > 0) {
+      if (tenant.status === 'BLOCKED' || tenant.status === 'SUSPENDED') {
         return {
           isBlocked: true,
-          tenantStatus: website.tenant.status,
+          tenantStatus: tenant.status,
           blockedReason:
-            website.tenant.blockedReason ||
+            tenant.blockedReason ||
             'This website has been suspended by the platform administrator.',
-          blockedAt: website.tenant.blockedAt || website.tenant.updatedAt,
+          blockedAt: tenant.blockedAt || tenant.updatedAt,
           tenant: {
-            name: website.tenant.name,
-            slug: website.tenant.slug,
+            name: tenant.name,
+            slug: tenant.slug,
           },
         };
       }
 
+      const website = tenant.websites[0];
+      const business = tenant.businesses[0] || null;
+
       return this.formatPublicResponse(
-        website.tenant,
-        website.business,
+        tenant,
+        business,
         website,
-        website.tenant.products,
-        website.tenant.pricingPlans,
+        tenant.products,
+        tenant.pricingPlans,
       );
     }
 
-    if (tenant.status === 'BLOCKED' || tenant.status === 'SUSPENDED') {
+    // 2. Fallback check: look for website directly by slug
+    const website = await this.prisma.website.findFirst({
+      where: { slug },
+      include: {
+        tenant: {
+          include: {
+            products: {
+              where: { isActive: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+            pricingPlans: {
+              where: { isActive: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
+        business: true,
+        pages: {
+          where: { isActive: true },
+          include: {
+            sections: {
+              where: { enabled: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+          orderBy: { sortOrder: 'asc' },
+        },
+        template: true,
+      },
+    });
+
+    if (!website) {
+      throw new NotFoundException('Website not found');
+    }
+
+    if (
+      website.tenant.status === 'BLOCKED' ||
+      website.tenant.status === 'SUSPENDED'
+    ) {
       return {
         isBlocked: true,
-        tenantStatus: tenant.status,
+        tenantStatus: website.tenant.status,
         blockedReason:
-          tenant.blockedReason ||
+          website.tenant.blockedReason ||
           'This website has been suspended by the platform administrator.',
-        blockedAt: tenant.blockedAt || tenant.updatedAt,
+        blockedAt: website.tenant.blockedAt || website.tenant.updatedAt,
         tenant: {
-          name: tenant.name,
-          slug: tenant.slug,
+          name: website.tenant.name,
+          slug: website.tenant.slug,
         },
       };
     }
 
-    const website = tenant.websites[0];
-    const business = tenant.businesses[0] || null;
-
     return this.formatPublicResponse(
-      tenant,
-      business,
+      website.tenant,
+      website.business,
       website,
-      tenant.products,
-      tenant.pricingPlans,
+      website.tenant.products,
+      website.tenant.pricingPlans,
     );
   }
 
@@ -246,6 +192,10 @@ export class PublishingService {
     };
   }
 
+  /**
+   * Format public website response delivering both canonical WebsiteDocument (V2)
+   * and legacy relational pages/sections format (V1 fallback).
+   */
   private formatPublicResponse(
     tenant: any,
     business: any,
@@ -253,6 +203,17 @@ export class PublishingService {
     products: any[],
     pricingPlans: any[],
   ) {
+    // Resolve published document
+    const canonicalDoc: WebsiteDocument = (website.publishedDocument ||
+      website.draftDocument ||
+      this.migrationService.migrateLegacyRelationalWebsite(
+        website,
+        website.pages,
+        business,
+        website.template,
+        true,
+      )) as WebsiteDocument;
+
     return {
       tenant: {
         name: tenant.name,
@@ -272,26 +233,29 @@ export class PublishingService {
             state: business.state,
             country: business.country,
             zipCode: business.zipCode,
-            website: business.website,
             socialMedia: business.socialMedia,
             businessHours: business.businessHours,
           }
         : null,
+      document: canonicalDoc,
       website: {
         id: website.id,
         name: website.name,
         slug: website.slug,
+        status: website.status,
+        schemaVersion: website.schemaVersion || '2.0',
+        documentRevision: website.documentRevision || 1,
         theme: website.theme,
         seoTitle: website.seoTitle,
         seoDescription: website.seoDescription,
         favicon: website.favicon,
         publishedAt: website.publishedAt,
-        pages: website.pages.map((page: any) => ({
+        pages: (website.pages || []).map((page: any) => ({
           id: page.id,
           title: page.title,
           slug: page.slug,
           type: page.type,
-          sections: page.sections.map((section: any) => ({
+          sections: (page.sections || []).map((section: any) => ({
             id: section.id,
             type: section.type,
             title: section.title,
