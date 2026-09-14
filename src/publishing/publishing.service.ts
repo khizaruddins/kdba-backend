@@ -202,19 +202,28 @@ export class PublishingService {
     products: any[],
     pricingPlans: any[],
   ) {
-    // Resolve published document (migrating to V3 if legacy)
-    const rawPublished = website.publishedDocument || website.draftDocument;
-    const canonicalDoc: WebsiteDocumentV3 = rawPublished
-      ? this.migrationService.migrateWebsiteDocument(rawPublished)
-      : this.migrationService.migrateWebsiteDocument(
-          this.migrationService.migrateLegacyRelationalWebsite(
-            website,
-            website.pages,
-            business,
-            website.template,
-            true,
-          ),
-        );
+    // Resolve published document only. Never leak draft editor state.
+    let canonicalDoc: WebsiteDocumentV3 | null = null;
+
+    if (website.publishedDocument) {
+      canonicalDoc = this.migrationService.migrateWebsiteDocument(
+        website.publishedDocument,
+      );
+    } else if (website.status === 'PUBLISHED') {
+      canonicalDoc = this.migrationService.migrateWebsiteDocument(
+        this.migrationService.migrateLegacyRelationalWebsite(
+          website,
+          website.pages,
+          business,
+          website.template,
+          true,
+        ),
+      );
+    }
+
+    if (!canonicalDoc) {
+      throw new NotFoundException('Website not found');
+    }
 
     return {
       tenant: {
@@ -239,19 +248,31 @@ export class PublishingService {
             businessHours: business.businessHours,
           }
         : null,
-      document: canonicalDoc,
+      document: this.stripEditorMetadata(canonicalDoc) as WebsiteDocumentV3,
       website: {
         id: website.id,
         name: website.name,
         slug: website.slug,
         status: website.status,
         schemaVersion: '3.0',
-        documentRevision: website.documentRevision || 1,
         theme: canonicalDoc.theme,
         seoTitle: website.seoTitle,
         seoDescription: website.seoDescription,
         favicon: website.favicon,
         publishedAt: website.publishedAt,
+        pages: (website.pages || []).map((page: any) => ({
+          id: page.id,
+          title: page.title,
+          slug: page.slug,
+          type: page.type,
+          sections: (page.sections || []).map((section: any) => ({
+            id: section.id,
+            type: section.type,
+            title: section.title,
+            config: section.publishedConfig || {},
+            sortOrder: section.sortOrder,
+          })),
+        })),
       },
       products: products.map((p) => ({
         id: p.id,
@@ -277,5 +298,27 @@ export class PublishingService {
         isRecommended: plan.isRecommended,
       })),
     };
+  }
+
+  private stripEditorMetadata(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.stripEditorMetadata(item));
+    }
+    if (value && typeof value === 'object') {
+      const next: Record<string, unknown> = {};
+      for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+        if (
+          key === 'kdbaEditorType' ||
+          key === 'draftDocument' ||
+          key === 'draftConfig' ||
+          key === 'documentRevision'
+        ) {
+          continue;
+        }
+        next[key] = this.stripEditorMetadata(nested);
+      }
+      return next;
+    }
+    return value;
   }
 }

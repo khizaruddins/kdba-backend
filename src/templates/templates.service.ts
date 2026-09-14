@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { DocumentValidatorService } from '../documents/services/document-validator.service';
 import { DocumentMigrationService } from '../documents/services/document-migration.service';
 import { ALL_NICHE_TEMPLATES, TEMPLATES_BY_ID, TEMPLATES_BY_SLUG } from './data/definitions';
@@ -204,7 +205,7 @@ export class TemplatesService {
         status: 'DRAFT',
         theme: normalizedDoc.theme as any,
         draftDocument: normalizedDoc as any,
-        publishedDocument: normalizedDoc as any,
+        publishedDocument: Prisma.DbNull,
         schemaVersion: '3.0',
         documentRevision: 1,
         seoTitle: business.name,

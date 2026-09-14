@@ -10,6 +10,12 @@ import {
   PageDocumentV3,
   ThemeSystemV3,
 } from '../types/document.types';
+import {
+  PageContractV3 as EditorPageContractV3,
+  ThemeConfigV3 as EditorThemeConfigV3,
+  VisualNode,
+  WebsiteDocumentV3 as EditorWebsiteDocumentV3,
+} from '../types/v3.types';
 import { SECTION_REGISTRY, isValidSectionType } from '../contracts/section-registry';
 import { DocumentValidatorService } from './document-validator.service';
 
@@ -753,5 +759,88 @@ export class DocumentMigrationService {
     };
 
     return this.validator.validateV2(rawDoc);
+  }
+
+  /**
+   * Editor compatibility tree: wrap V2 sections as `legacy-section` nodes
+   * instead of expanding them into a new visual tree.
+   */
+  migrateV2ToEditorDocument(v2: WebsiteDocument): EditorWebsiteDocumentV3 {
+    const theme = this.upgradeEditorTheme(v2.theme);
+
+    const pages: EditorPageContractV3[] = v2.pages.map((page) => {
+      const children: VisualNode[] = (page.sections || []).map((section) => ({
+        id: section.id,
+        type: 'legacy-section',
+        props: {
+          legacyType: section.type,
+          variant: section.variant,
+          payload: section.props || {},
+        },
+        styles: (section.styles as VisualNode['styles']) || {},
+        responsive: (section.responsive as VisualNode['responsive']) || {},
+        children: [],
+        enabled: section.enabled !== false,
+      }));
+
+      return {
+        id: page.id,
+        name: page.title,
+        title: page.title,
+        slug: page.slug,
+        type: page.type,
+        sortOrder: page.sortOrder,
+        enabled: page.enabled !== false,
+        seo: page.seo,
+        root: {
+          id: `root_${page.id}`,
+          type: 'page-root',
+          props: {},
+          styles: {},
+          responsive: {},
+          children,
+          enabled: true,
+        },
+        sections: page.sections,
+      };
+    });
+
+    return {
+      schemaVersion: '3.0',
+      site: {
+        ...v2.site,
+        settings: v2.settings,
+      },
+      theme,
+      business: v2.business,
+      navigation: v2.navigation,
+      pages,
+      seo: v2.seo,
+      settings: v2.settings,
+    };
+  }
+
+  private upgradeEditorTheme(theme: WebsiteDocument['theme']): EditorThemeConfigV3 {
+    return {
+      ...theme,
+      colors: {
+        primary: theme.primaryColor,
+        secondary: theme.secondaryColor,
+        accent: theme.accentColor,
+        background: theme.backgroundColor,
+        surface: '#F8FAFC',
+        text: theme.textColor,
+        muted: '#6B7280',
+        border: '#E5E7EB',
+      },
+      typography: {
+        headingFont: theme.headingFont,
+        bodyFont: theme.bodyFont,
+      },
+      tokens: {
+        borderRadius: theme.borderRadius,
+        shadows: theme.shadows,
+      },
+    };
   }
 }

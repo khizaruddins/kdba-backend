@@ -26,6 +26,7 @@ import {
   DocumentOperationsResult,
 } from '../documents/types/document.types';
 import { getComponentManifest } from '../documents/contracts/component-registry';
+import { getBuilderCatalog } from '../documents/contracts/builder-catalog';
 import { DocumentOperationsPayloadSchema } from '../documents/schemas/v3/document-v3.schema';
 
 @Injectable()
@@ -162,6 +163,7 @@ export class WebsitesService {
       publishedAt: website.publishedAt,
       updatedAt: website.updatedAt,
       document,
+      catalog: getBuilderCatalog(),
     };
   }
 
@@ -184,6 +186,7 @@ export class WebsitesService {
     ) {
       throw new ConflictException({
         statusCode: 409,
+        code: 'DOCUMENT_REVISION_CONFLICT',
         error: 'DOCUMENT_REVISION_CONFLICT',
         message: 'Document revision conflict: document was modified in another session',
         currentRevision: website.documentRevision,
@@ -262,20 +265,41 @@ export class WebsitesService {
     tenantId: string,
     dto: SaveWebsiteDocumentDto,
   ) {
+    const revision = dto.baseRevision ?? dto.expectedRevision ?? dto.revision;
+
+    if (dto.operations && dto.operations.length > 0) {
+      if (revision === undefined) {
+        throw new BadRequestException({
+          code: 'DOCUMENT_VALIDATION_FAILED',
+          message: 'baseRevision is required when sending operations',
+          errors: [{ path: 'baseRevision', message: 'baseRevision is required' }],
+        });
+      }
+      return this.applyOperations(id, tenantId, {
+        baseRevision: revision,
+        operations: dto.operations,
+      });
+    }
+
+    if (!dto.document) {
+      throw new BadRequestException({
+        code: 'DOCUMENT_VALIDATION_FAILED',
+        message: 'document is required',
+        errors: [{ path: 'document', message: 'A WebsiteDocument payload is required' }],
+      });
+    }
+
     const website = await this.findOne(id, tenantId);
 
     // Optimistic concurrency control
-    const expected = dto.expectedRevision ?? dto.baseRevision;
-    if (
-      expected !== undefined &&
-      expected !== website.documentRevision
-    ) {
+    if (revision !== undefined && revision !== website.documentRevision) {
       throw new ConflictException({
         statusCode: 409,
+        code: 'DOCUMENT_REVISION_CONFLICT',
         error: 'DOCUMENT_REVISION_CONFLICT',
         message: 'Concurrency conflict: document has been modified in another session',
         currentRevision: website.documentRevision,
-        expectedRevision: expected,
+        expectedRevision: revision,
       });
     }
 
@@ -551,6 +575,20 @@ export class WebsitesService {
         createdAt: true,
       },
     });
+  }
+
+  async getRevisions(websiteId: string, tenantId: string) {
+    const website = await this.findOne(websiteId, tenantId);
+    const versions = await this.getVersions(websiteId, tenantId);
+
+    return {
+      websiteId: website.id,
+      currentRevision: website.documentRevision || 1,
+      schemaVersion: website.schemaVersion || '3.0',
+      updatedAt: website.updatedAt,
+      publishedAt: website.publishedAt,
+      versions,
+    };
   }
 
   /**

@@ -247,8 +247,8 @@ model Website {
   slug              String
   status            WebsiteStatus    @default(DRAFT)
   theme             Json // Customized theme (cloned from template, editable)
-  draftDocument     Json?            // Canonical V2 WebsiteDocument (Draft / Editing state)
-  publishedDocument Json?            // Canonical V2 WebsiteDocument (Live / Published snapshot)
+  draftDocument     Json?            // Canonical WebsiteDocument V2 or V3 (Draft / Editing state)
+  publishedDocument Json?            // Canonical WebsiteDocument V2 or V3 (Live / Published snapshot)
   schemaVersion     String           @default("2.0")
   documentRevision  Int              @default(1)
   favicon           String?

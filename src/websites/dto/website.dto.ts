@@ -64,10 +64,10 @@ export class UpdateWebsiteDto {
 }
 
 export class SaveWebsiteDocumentDto {
-  @ApiProperty({ description: 'Full canonical WebsiteDocument JSON payload (V3.0 or V2.0)' })
+  @ApiPropertyOptional({ description: 'Full canonical WebsiteDocument JSON payload (V3.0 or V2.0)' })
   @IsObject()
-  @IsNotEmpty()
-  document: Record<string, unknown>;
+  @IsOptional()
+  document?: Record<string, unknown>;
 
   @ApiPropertyOptional({ description: 'Expected current revision number for optimistic concurrency control' })
   @IsNumber()
@@ -78,6 +78,18 @@ export class SaveWebsiteDocumentDto {
   @IsNumber()
   @IsOptional()
   baseRevision?: number;
+
+  @ApiPropertyOptional({ description: 'Current editor revision; treated as a concurrency token alias' })
+  @IsNumber()
+  @IsOptional()
+  revision?: number;
+
+  @ApiPropertyOptional({
+    description: 'If provided, this save is treated as a transactional operations batch',
+  })
+  @IsArray()
+  @IsOptional()
+  operations?: DocumentOperation[];
 }
 
 export class ApplyDocumentOperationsDto {

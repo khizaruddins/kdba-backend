@@ -88,6 +88,17 @@ export class WebsitesController {
     return this.websitesService.updateDocument(id, user.tenantId, dto);
   }
 
+  @Post(':id/document')
+  @Patch(':id/document')
+  @ApiOperation({ summary: 'Save draft document or apply a transactional operations batch' })
+  async saveDocumentPost(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: SaveWebsiteDocumentDto,
+  ) {
+    return this.websitesService.updateDocument(id, user.tenantId, dto);
+  }
+
   @Post(':id/document/operations')
   @ApiOperation({ summary: 'Apply fine-grained visual document operations transactionally with revision verification' })
   @ApiResponse({ status: 200, description: 'Operations applied and document revision incremented' })
@@ -108,6 +119,22 @@ export class WebsitesController {
     @Body() dto: ApplyDocumentOperationsDto,
   ) {
     return this.websitesService.applyOperations(id, user.tenantId, dto);
+  }
+
+  @Patch(':id/document/operations')
+  @ApiOperation({ summary: 'Apply a transactional batch of validated visual-document operations' })
+  async applyOperationsPatch(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ApplyDocumentOperationsDto,
+  ) {
+    return this.websitesService.applyOperations(id, user.tenantId, dto);
+  }
+
+  @Get(':id/revisions')
+  @ApiOperation({ summary: 'Get current document revision and snapshot history' })
+  async getRevisions(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.websitesService.getRevisions(id, user.tenantId);
   }
 
   @Patch(':id/document/mutations')
