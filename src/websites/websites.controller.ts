@@ -77,7 +77,7 @@ export class WebsitesController {
   }
 
   @Put(':id/document')
-  @ApiOperation({ summary: 'Save full draft WebsiteDocument with strict schema validation and optimistic concurrency check' })
+  @ApiOperation({ summary: 'Save full draft WebsiteDocument. A complete document replace overwrites a stale editor revision so Retry save can succeed; operation batches still require an exact revision match.' })
   @ApiResponse({ status: 200, description: 'Document validated and saved successfully' })
   @ApiResponse({ status: 409, description: 'Concurrency conflict (document modified in another session)' })
   async updateDocument(

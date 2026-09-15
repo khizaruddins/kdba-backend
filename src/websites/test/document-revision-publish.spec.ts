@@ -98,6 +98,20 @@ describe('Website document revisions, publish, and authorization', () => {
     publishing = module.get(PublishingService);
   });
 
+  it('overwrites a stale editor revision on full document save', async () => {
+    const validator = new DocumentValidatorService();
+    const migration = new DocumentMigrationService(validator);
+    const draft = migration.migrateWebsiteDocument(dentalClinicTemplate.document);
+
+    const result = await websites.updateDocument(websiteId, tenantId, {
+      document: draft as unknown as Record<string, unknown>,
+      expectedRevision: 4,
+    });
+
+    expect(result.revision).toBe(6);
+    expect(prisma.website.update).toHaveBeenCalled();
+  });
+
   it('rejects stale revisions with DOCUMENT_REVISION_CONFLICT', async () => {
     try {
       await websites.applyOperations(websiteId, tenantId, {

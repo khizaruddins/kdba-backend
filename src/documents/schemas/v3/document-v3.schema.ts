@@ -37,6 +37,7 @@ export const PageDocumentV3Schema = z.object({
     .default('custom'),
   sortOrder: z.number().int().default(0),
   enabled: z.boolean().default(true),
+  isHomepage: z.boolean().optional(),
   seo: z
     .object({
       title: safeString(200).optional(),
@@ -200,9 +201,57 @@ export const DocumentOperationSchema = z.discriminatedUnion('type', [
     type: z.literal('updateSettings'),
     settings: z.record(z.string(), z.unknown()),
   }),
+  z.object({
+    type: z.literal('duplicatePage'),
+    pageId: safeString(100),
+  }),
+  z.object({
+    type: z.literal('pasteNode'),
+    pageId: safeString(100),
+    parentId: safeString(100),
+    node: WebsiteNodeSchema,
+    index: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('resetResponsive'),
+    pageId: safeString(100),
+    nodeId: safeString(100),
+    breakpoint: z.enum(['desktop', 'tablet', 'mobile']).optional(),
+  }),
+  z.object({
+    type: z.literal('insertPreset'),
+    pageId: safeString(100),
+    parentId: safeString(100),
+    presetId: safeString(100),
+    index: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('upsertReusable'),
+    componentId: safeString(100),
+    node: WebsiteNodeSchema,
+  }),
+  z.object({
+    type: z.literal('insertReusable'),
+    pageId: safeString(100),
+    parentId: safeString(100),
+    componentId: safeString(100),
+    index: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('removeReusable'),
+    componentId: safeString(100),
+  }),
+  z.object({
+    type: z.literal('updateGlobal'),
+    headerNode: WebsiteNodeSchema.nullable().optional(),
+    footerNode: WebsiteNodeSchema.nullable().optional(),
+  }),
 ]);
 
 export const DocumentOperationsPayloadSchema = z.object({
   baseRevision: z.number().int().min(0).optional(),
-  operations: z.array(DocumentOperationSchema).min(1, 'At least one operation is required'),
+  operations: z
+    .array(DocumentOperationSchema)
+    .min(1, 'At least one operation is required')
+    .max(100, 'A batch may contain at most 100 operations'),
 });

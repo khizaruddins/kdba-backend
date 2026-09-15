@@ -1,40 +1,53 @@
 import { z } from 'zod';
+import { coerceCssLengthInput, coerceIncomingTheme } from '../../services/live-coerce';
 
 // ─── SAFE STRING & NUMBER HELPERS ─────────────────────────────────────────────
 
-const safeCssValue = z.string().trim().max(100);
+const safeCssValue = z
+  .string()
+  .trim()
+  .max(100)
+  .refine(
+    (val) =>
+      !/javascript\s*:|expression\s*\(|url\s*\(|<script|@import/i.test(val),
+    { message: 'Unsafe CSS value rejected' },
+  );
+
+/** Editor StyleModel uses unitless px numbers; canonical V3 stores CSS strings. */
+const cssLength = z.preprocess(coerceCssLengthInput, safeCssValue);
+
 const safeColor = z
   .string()
   .trim()
   .max(100)
   .regex(
-    /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$|^rgb|^hsl|^var\(--|^transparent$|^inherit$|^currentColor$/i,
+    /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$|^rgb|^hsl|^var\(--|^transparent$|^inherit$|^currentColor$|^[a-zA-Z][a-zA-Z0-9._-]*$/i,
     'Invalid CSS color format',
   );
 
 // ─── SPACING SCHEMA ───────────────────────────────────────────────────────────
 
 export const BoxSpacingSchema = z.object({
-  top: safeCssValue.optional(),
-  right: safeCssValue.optional(),
-  bottom: safeCssValue.optional(),
-  left: safeCssValue.optional(),
+  top: cssLength.optional(),
+  right: cssLength.optional(),
+  bottom: cssLength.optional(),
+  left: cssLength.optional(),
 });
 
 // ─── BORDER SCHEMA ────────────────────────────────────────────────────────────
 
 export const BorderSideSchema = z.object({
-  width: safeCssValue.optional(),
+  width: cssLength.optional(),
   style: z.enum(['solid', 'dashed', 'dotted', 'double', 'none']).optional(),
   color: safeColor.optional(),
 });
 
 export const BorderRadiusDefinitionSchema = z.object({
-  topLeft: safeCssValue.optional(),
-  topRight: safeCssValue.optional(),
-  bottomRight: safeCssValue.optional(),
-  bottomLeft: safeCssValue.optional(),
-  all: safeCssValue.optional(),
+  topLeft: cssLength.optional(),
+  topRight: cssLength.optional(),
+  bottomRight: cssLength.optional(),
+  bottomLeft: cssLength.optional(),
+  all: cssLength.optional(),
 });
 
 // ─── SHADOW SCHEMA ────────────────────────────────────────────────────────────
@@ -72,18 +85,21 @@ export const StyleDefinitionSchema = z.object({
       position: z
         .enum(['static', 'relative', 'absolute', 'sticky', 'fixed'])
         .optional(),
-      width: safeCssValue.optional(),
-      height: safeCssValue.optional(),
-      minWidth: safeCssValue.optional(),
-      maxWidth: safeCssValue.optional(),
-      minHeight: safeCssValue.optional(),
-      maxHeight: safeCssValue.optional(),
-      top: safeCssValue.optional(),
-      right: safeCssValue.optional(),
-      bottom: safeCssValue.optional(),
-      left: safeCssValue.optional(),
+      width: cssLength.optional(),
+      height: cssLength.optional(),
+      minWidth: cssLength.optional(),
+      maxWidth: cssLength.optional(),
+      minHeight: cssLength.optional(),
+      maxHeight: cssLength.optional(),
+      top: cssLength.optional(),
+      right: cssLength.optional(),
+      bottom: cssLength.optional(),
+      left: cssLength.optional(),
       zIndex: z.number().int().optional(),
       overflow: z.enum(['visible', 'hidden', 'scroll', 'auto']).optional(),
+      containerWidth: z.enum(['full', 'wide', 'default', 'narrow']).optional(),
+      columns: z.number().int().min(1).max(24).optional(),
+      rows: z.number().int().min(1).max(24).optional(),
     })
     .optional(),
 
@@ -114,12 +130,12 @@ export const StyleDefinitionSchema = z.object({
           'stretch',
         ])
         .optional(),
-      gap: safeCssValue.optional(),
-      rowGap: safeCssValue.optional(),
-      columnGap: safeCssValue.optional(),
+      gap: cssLength.optional(),
+      rowGap: cssLength.optional(),
+      columnGap: cssLength.optional(),
       grow: z.number().optional(),
       shrink: z.number().optional(),
-      basis: safeCssValue.optional(),
+      basis: cssLength.optional(),
     })
     .optional(),
 
@@ -129,8 +145,8 @@ export const StyleDefinitionSchema = z.object({
       rows: z.number().int().min(1).optional(),
       gridTemplateColumns: safeCssValue.optional(),
       gridTemplateRows: safeCssValue.optional(),
-      columnGap: safeCssValue.optional(),
-      rowGap: safeCssValue.optional(),
+      columnGap: cssLength.optional(),
+      rowGap: cssLength.optional(),
       autoFlow: z.enum(['row', 'column', 'dense']).optional(),
       columnSpan: z.union([z.number().int().min(1).max(24), safeCssValue]).optional(),
       rowSpan: z.union([z.number().int().min(1), safeCssValue]).optional(),
@@ -139,12 +155,12 @@ export const StyleDefinitionSchema = z.object({
 
   size: z
     .object({
-      width: safeCssValue.optional(),
-      height: safeCssValue.optional(),
-      minWidth: safeCssValue.optional(),
-      maxWidth: safeCssValue.optional(),
-      minHeight: safeCssValue.optional(),
-      maxHeight: safeCssValue.optional(),
+      width: cssLength.optional(),
+      height: cssLength.optional(),
+      minWidth: cssLength.optional(),
+      maxWidth: cssLength.optional(),
+      minHeight: cssLength.optional(),
+      maxHeight: cssLength.optional(),
       aspectRatio: safeCssValue.optional(),
     })
     .optional(),
@@ -159,10 +175,10 @@ export const StyleDefinitionSchema = z.object({
   typography: z
     .object({
       fontFamily: safeCssValue.optional(),
-      fontSize: safeCssValue.optional(),
+      fontSize: cssLength.optional(),
       fontWeight: z.union([z.string(), z.number()]).optional(),
       lineHeight: z.union([z.string(), z.number()]).optional(),
-      letterSpacing: safeCssValue.optional(),
+      letterSpacing: cssLength.optional(),
       textAlign: z.enum(['left', 'center', 'right', 'justify']).optional(),
       textTransform: z.enum(['none', 'capitalize', 'uppercase', 'lowercase']).optional(),
       textDecoration: z.enum(['none', 'underline', 'line-through']).optional(),
@@ -174,8 +190,18 @@ export const StyleDefinitionSchema = z.object({
     .object({
       color: safeColor.optional(),
       gradient: GradientDefinitionSchema.optional(),
-      image: z.string().max(2048).optional(),
-      mediaId: z.string().max(100).optional(),
+      image: z
+        .string()
+        .max(2048)
+        .refine((val) => !/javascript\s*:|expression\s*\(|<script/i.test(val), {
+          message: 'Unsafe background image value rejected',
+        })
+        .optional(),
+      mediaId: z
+        .string()
+        .max(100)
+        .refine((val) => !val.includes('://'), { message: 'mediaId cannot be a URL' })
+        .optional(),
       position: safeCssValue.optional(),
       size: safeCssValue.optional(),
       repeat: z.enum(['no-repeat', 'repeat', 'repeat-x', 'repeat-y']).optional(),
@@ -189,7 +215,7 @@ export const StyleDefinitionSchema = z.object({
       right: BorderSideSchema.optional(),
       bottom: BorderSideSchema.optional(),
       left: BorderSideSchema.optional(),
-      width: safeCssValue.optional(),
+      width: cssLength.optional(),
       style: z.enum(['solid', 'dashed', 'dotted', 'double', 'none']).optional(),
       color: safeColor.optional(),
       radius: BorderRadiusDefinitionSchema.optional(),
@@ -208,14 +234,14 @@ export const StyleDefinitionSchema = z.object({
 
   transform: z
     .object({
-      translateX: safeCssValue.optional(),
-      translateY: safeCssValue.optional(),
+      translateX: cssLength.optional(),
+      translateY: cssLength.optional(),
       scale: z.number().optional(),
       scaleX: z.number().optional(),
       scaleY: z.number().optional(),
-      rotate: safeCssValue.optional(),
-      skewX: safeCssValue.optional(),
-      skewY: safeCssValue.optional(),
+      rotate: cssLength.optional(),
+      skewX: cssLength.optional(),
+      skewY: cssLength.optional(),
     })
     .optional(),
 });
@@ -229,6 +255,7 @@ export const BreakpointConfigSchema = z.object({
 }).catchall(z.number().int());
 
 export const ResponsiveStyleDefinitionSchema = z.object({
+  desktop: StyleDefinitionSchema.optional(),
   tablet: StyleDefinitionSchema.optional(),
   mobile: StyleDefinitionSchema.optional(),
   custom: z.record(z.string(), StyleDefinitionSchema).optional(),
@@ -240,14 +267,21 @@ export const ResponsiveVisibilitySchema = z.object({
   mobile: z.boolean().optional().default(true),
 }).catchall(z.boolean().optional());
 
+export const ComponentStateStylesSchema = z.object({
+  hover: StyleDefinitionSchema.optional(),
+  active: StyleDefinitionSchema.optional(),
+  focus: StyleDefinitionSchema.optional(),
+  disabled: StyleDefinitionSchema.optional(),
+});
+
 // ─── THEME SYSTEM SCHEMAS ─────────────────────────────────────────────────────
 
 export const TypographyTokenSchema = z.object({
   fontFamily: safeCssValue.default('Inter'),
-  fontSize: safeCssValue,
+  fontSize: cssLength,
   fontWeight: z.union([z.string(), z.number()]).default(400),
   lineHeight: z.union([z.string(), z.number()]).default(1.5),
-  letterSpacing: safeCssValue.optional(),
+  letterSpacing: cssLength.optional(),
 });
 
 export const TypographySystemV3Schema = z.object({
@@ -279,7 +313,7 @@ export const ColorTokensV3Schema = z.object({
   custom: z.record(z.string(), safeColor).optional(),
 });
 
-export const ThemeSystemV3Schema = z.object({
+export const ThemeSystemV3ObjectSchema = z.object({
   colors: ColorTokensV3Schema,
   typography: TypographySystemV3Schema,
   breakpoints: BreakpointConfigSchema.default({
@@ -291,3 +325,5 @@ export const ThemeSystemV3Schema = z.object({
   shadows: z.enum(['none', 'subtle', 'medium', 'dramatic']).default('subtle'),
   customCss: z.string().max(50000).optional(),
 });
+
+export const ThemeSystemV3Schema = z.preprocess(coerceIncomingTheme, ThemeSystemV3ObjectSchema);

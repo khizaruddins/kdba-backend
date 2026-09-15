@@ -3,6 +3,7 @@ import {
   ALL_NODE_TYPES,
   WebsiteNode,
   StyleDefinition,
+  ComponentState,
 } from '../types/document.types';
 import * as crypto from 'crypto';
 
@@ -18,6 +19,12 @@ export interface ComponentCapabilities {
   supportsAnimations: boolean;
 }
 
+export interface EditableFieldDefinition {
+  key: string;
+  label: string;
+  kind: 'text' | 'rich-text' | 'url' | 'media' | 'select' | 'boolean' | 'number' | 'variant';
+}
+
 export interface ComponentDefinition {
   type: NodeType;
   category: 'structural' | 'content' | 'media' | 'business' | 'navigation';
@@ -28,6 +35,10 @@ export interface ComponentDefinition {
   defaultStyles: StyleDefinition;
   capabilities: ComponentCapabilities;
   isLeaf: boolean;
+  variants?: string[];
+  states?: ComponentState[];
+  editableFields?: EditableFieldDefinition[];
+  supportedResponsive?: Array<'layout' | 'flex' | 'grid' | 'size' | 'spacing' | 'typography' | 'background' | 'border' | 'effects' | 'visibility'>;
 }
 
 // ─── COMPONENT REGISTRY DEFINITIONS ───────────────────────────────────────────
@@ -95,8 +106,15 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       fullWidth: true,
       anchorId: '',
     },
+    variants: ['default', 'center', 'split', 'image'],
+    states: ['hover'],
+    editableFields: [
+      { key: 'anchorId', label: 'Anchor ID', kind: 'text' },
+      { key: 'fullWidth', label: 'Full width', kind: 'boolean' },
+    ],
+    supportedResponsive: ['layout', 'spacing', 'background', 'visibility'],
     defaultStyles: {
-      layout: { position: 'relative', width: '100%' },
+      layout: { position: 'relative', width: '100%', containerWidth: 'full' },
       spacing: { padding: { top: '64px', bottom: '64px', left: '24px', right: '24px' } },
       background: { color: 'transparent' },
     },
@@ -156,8 +174,15 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       maxWidth: '1200px',
       centered: true,
     },
+    variants: ['default', 'narrow', 'wide'],
+    states: ['hover'],
+    editableFields: [
+      { key: 'maxWidth', label: 'Max width', kind: 'text' },
+      { key: 'centered', label: 'Centered', kind: 'boolean' },
+    ],
+    supportedResponsive: ['layout', 'size', 'spacing', 'visibility'],
     defaultStyles: {
-      layout: { position: 'relative', width: '100%' },
+      layout: { position: 'relative', width: '100%', containerWidth: 'default' },
       size: { maxWidth: '1200px' },
       spacing: { margin: { left: 'auto', right: 'auto' }, padding: { left: '16px', right: '16px' } },
     },
@@ -184,6 +209,7 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       'column',
       'stack',
       'container',
+      'grid',
       'heading',
       'paragraph',
       'rich-text',
@@ -314,8 +340,15 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       columns: 3,
       gap: '24px',
     },
+    variants: ['default', 'dense'],
+    states: ['hover'],
+    editableFields: [
+      { key: 'columns', label: 'Columns', kind: 'number' },
+      { key: 'gap', label: 'Gap', kind: 'text' },
+    ],
+    supportedResponsive: ['layout', 'grid', 'spacing', 'size', 'visibility'],
     defaultStyles: {
-      layout: { display: 'grid', position: 'relative', width: '100%' },
+      layout: { display: 'grid', position: 'relative', width: '100%', columns: 3 },
       grid: {
         columns: 3,
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -344,7 +377,9 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
     description: 'Vertical or horizontal auto-layout stack with configurable spacing and alignment.',
     allowedChildren: [
       'container',
+      'row',
       'column',
+      'grid',
       'stack',
       'heading',
       'paragraph',
@@ -361,16 +396,82 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       'spacer',
       'list',
       'quote',
+      'gallery',
+      'carousel',
       'form',
       'contact-form',
+      'map',
+      'opening-hours',
+      'pricing',
+      'product',
+      'testimonial',
+      'team',
+      'service',
     ],
     defaultProps: {
       direction: 'column',
       gap: '16px',
     },
+    variants: ['default', 'horizontal', 'vertical'],
+    states: ['hover'],
+    editableFields: [
+      { key: 'direction', label: 'Direction', kind: 'select' },
+      { key: 'gap', label: 'Gap', kind: 'text' },
+    ],
+    supportedResponsive: ['layout', 'flex', 'spacing', 'size', 'visibility'],
     defaultStyles: {
       layout: { display: 'flex', position: 'relative', width: '100%' },
       flex: { direction: 'column', gap: '16px', alignItems: 'flex-start' },
+    },
+    capabilities: {
+      canHaveChildren: true,
+      canDropInto: true,
+      canDuplicate: true,
+      canDelete: true,
+      canMove: true,
+      supportsStyles: true,
+      supportsResponsive: true,
+      supportsInteractions: true,
+      supportsAnimations: true,
+    },
+    isLeaf: false,
+  },
+
+  card: {
+    type: 'card',
+    category: 'structural',
+    name: 'Card',
+    description: 'Contained content card with optional elevation, border, and nested layout.',
+    allowedChildren: [
+      'container',
+      'stack',
+      'grid',
+      'heading',
+      'paragraph',
+      'rich-text',
+      'text',
+      'button',
+      'link',
+      'image',
+      'icon',
+      'badge',
+      'divider',
+      'spacer',
+      'list',
+    ],
+    defaultProps: {
+      href: '',
+    },
+    variants: ['default', 'elevated', 'bordered'],
+    states: ['hover', 'active', 'focus'],
+    editableFields: [{ key: 'href', label: 'Link', kind: 'url' }],
+    supportedResponsive: ['layout', 'spacing', 'background', 'border', 'effects', 'visibility'],
+    defaultStyles: {
+      layout: { display: 'flex', position: 'relative', width: '100%' },
+      flex: { direction: 'column', gap: '12px' },
+      spacing: { padding: { top: '24px', bottom: '24px', left: '24px', right: '24px' } },
+      border: { radius: { all: '12px' }, width: '1px', style: 'solid', color: '#e2e8f0' },
+      background: { color: '#ffffff' },
     },
     capabilities: {
       canHaveChildren: true,
@@ -397,6 +498,13 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       text: 'Build Something Exceptional',
       level: 2, // 1 to 6
     },
+    variants: ['display', 'section', 'subtle'],
+    states: ['hover'],
+    editableFields: [
+      { key: 'text', label: 'Text', kind: 'text' },
+      { key: 'level', label: 'Level', kind: 'number' },
+    ],
+    supportedResponsive: ['typography', 'spacing', 'visibility'],
     defaultStyles: {
       typography: {
         fontSize: '32px',
@@ -430,6 +538,10 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
     defaultProps: {
       text: 'Craft stunning, responsive websites with full visual precision and high performance.',
     },
+    variants: ['default', 'lead', 'muted'],
+    states: ['hover'],
+    editableFields: [{ key: 'text', label: 'Text', kind: 'text' }],
+    supportedResponsive: ['typography', 'spacing', 'visibility'],
     defaultStyles: {
       typography: {
         fontSize: '16px',
@@ -457,11 +569,23 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
     type: 'rich-text',
     category: 'content',
     name: 'Rich Text',
-    description: 'Sanitized HTML / rich-text block for formatted copy and inline links.',
+    description: 'Structured rich-text block for formatted copy, emphasis, links, and lists.',
     allowedChildren: [],
     defaultProps: {
-      html: '<p>Empowering businesses with <strong>next-generation</strong> digital solutions.</p>',
+      blocks: [
+        {
+          type: 'paragraph',
+          children: [
+            { text: 'Empowering businesses with ' },
+            { text: 'next-generation', marks: ['bold'] },
+            { text: ' digital solutions.' },
+          ],
+        },
+      ],
     },
+    states: ['hover'],
+    editableFields: [{ key: 'blocks', label: 'Content', kind: 'rich-text' }],
+    supportedResponsive: ['typography', 'spacing', 'visibility'],
     defaultStyles: {
       typography: { fontSize: '16px', lineHeight: 1.6 },
     },
@@ -513,9 +637,18 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       label: 'Get Started',
       href: '#contact',
       target: '_self',
-      variant: 'primary', // 'primary' | 'secondary' | 'outline' | 'ghost'
+      variant: 'primary',
       size: 'md',
     },
+    variants: ['primary', 'secondary', 'outline', 'ghost'],
+    states: ['hover', 'active', 'focus', 'disabled'],
+    editableFields: [
+      { key: 'label', label: 'Label', kind: 'text' },
+      { key: 'href', label: 'Link', kind: 'url' },
+      { key: 'variant', label: 'Variant', kind: 'variant' },
+      { key: 'size', label: 'Size', kind: 'select' },
+    ],
+    supportedResponsive: ['layout', 'spacing', 'typography', 'background', 'border', 'visibility'],
     defaultStyles: {
       layout: { display: 'inline-flex', position: 'relative' },
       flex: { alignItems: 'center', justifyContent: 'center' },
@@ -775,9 +908,22 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       alt: 'Office workspace',
       mediaId: '',
       objectFit: 'cover',
+      objectPosition: 'center',
+      href: '',
+      width: '',
+      height: '',
       aspectRatio: '16/9',
       lazy: true,
     },
+    states: ['hover'],
+    editableFields: [
+      { key: 'mediaId', label: 'Media', kind: 'media' },
+      { key: 'alt', label: 'Alt text', kind: 'text' },
+      { key: 'objectFit', label: 'Object fit', kind: 'select' },
+      { key: 'objectPosition', label: 'Object position', kind: 'text' },
+      { key: 'href', label: 'Link', kind: 'url' },
+    ],
+    supportedResponsive: ['layout', 'size', 'border', 'effects', 'visibility'],
     defaultStyles: {
       layout: { position: 'relative', width: '100%' },
       border: { radius: { all: '12px' } },
@@ -940,6 +1086,10 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       ],
       submitLabel: 'Send Inquiry',
     },
+    variants: ['default', 'compact', 'card'],
+    states: ['hover', 'focus'],
+    editableFields: [{ key: 'submitLabel', label: 'Submit label', kind: 'text' }],
+    supportedResponsive: ['layout', 'spacing', 'background', 'border', 'visibility'],
     defaultStyles: {
       layout: { display: 'flex', width: '100%' },
       flex: { direction: 'column', gap: '16px' },
@@ -1272,6 +1422,10 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       ],
       orientation: 'horizontal',
     },
+    variants: ['default', 'pills', 'underline'],
+    states: ['hover', 'active', 'focus'],
+    editableFields: [{ key: 'orientation', label: 'Orientation', kind: 'select' }],
+    supportedResponsive: ['layout', 'flex', 'typography', 'visibility'],
     defaultStyles: {
       layout: { display: 'flex' },
       flex: { direction: 'row', gap: '20px' },
@@ -1332,6 +1486,13 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
 
 // ─── HELPER FUNCTIONS ─────────────────────────────────────────────────────────
 
+const CARD_PARENTS: NodeType[] = ['section', 'container', 'row', 'column', 'grid', 'stack'];
+for (const parent of CARD_PARENTS) {
+  if (!COMPONENT_REGISTRY[parent].allowedChildren.includes('card')) {
+    COMPONENT_REGISTRY[parent].allowedChildren.push('card');
+  }
+}
+
 export function isValidNodeType(type: string): type is NodeType {
   return ALL_NODE_TYPES.includes(type as NodeType);
 }
@@ -1342,9 +1503,30 @@ export function isAllowedChild(parentType: NodeType, childType: NodeType): boole
   return def.allowedChildren.includes(childType);
 }
 
+export function getAllowedParents(childType: NodeType): NodeType[] {
+  return (ALL_NODE_TYPES as readonly NodeType[]).filter((parent) =>
+    isAllowedChild(parent, childType),
+  );
+}
+
 export function isLeafNode(type: NodeType): boolean {
   const def = COMPONENT_REGISTRY[type];
   return !def || def.isLeaf;
+}
+
+export function isValidComponentVariant(type: NodeType, variant: string): boolean {
+  const def = COMPONENT_REGISTRY[type];
+  if (!def) return false;
+  if (!def.variants || def.variants.length === 0) {
+    return false;
+  }
+  return def.variants.includes(variant);
+}
+
+export function isValidComponentState(type: NodeType, state: ComponentState): boolean {
+  const def = COMPONENT_REGISTRY[type];
+  if (!def?.states?.length) return false;
+  return def.states.includes(state);
 }
 
 export function getDefaultNode(type: NodeType, id?: string): WebsiteNode {
@@ -1363,6 +1545,10 @@ export function getDefaultNode(type: NodeType, id?: string): WebsiteNode {
     styles: JSON.parse(JSON.stringify(def.defaultStyles)),
   };
 
+  if (def.variants?.length) {
+    node.variant = typeof def.defaultProps.variant === 'string' ? def.defaultProps.variant : def.variants[0];
+  }
+
   if (def.capabilities.canHaveChildren) {
     node.children = [];
   }
@@ -1375,11 +1561,17 @@ export function getComponentManifest() {
     type: def.type,
     category: def.category,
     name: def.name,
+    displayName: def.name,
     description: def.description,
     allowedChildren: def.allowedChildren,
+    allowedParents: getAllowedParents(def.type),
     defaultProps: def.defaultProps,
     defaultStyles: def.defaultStyles,
     capabilities: def.capabilities,
     isLeaf: def.isLeaf,
+    variants: def.variants || [],
+    states: def.states || [],
+    editableFields: def.editableFields || [],
+    supportedResponsive: def.supportedResponsive || [],
   }));
 }

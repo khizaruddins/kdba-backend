@@ -13,8 +13,6 @@ import {
 } from '../schemas/document.schema';
 import {
   WebsiteDocumentV3Schema,
-  DocumentOperationSchema,
-  DocumentOperationsPayloadSchema,
 } from '../schemas/v3/document-v3.schema';
 import {
   WebsiteDocument,
@@ -25,6 +23,20 @@ import {
   WebsiteNode,
   PageDocumentV3,
 } from '../types/document.types';
+import { coerceRichTextProps } from './rich-text';
+import {
+  assertMediaReferences,
+  assertReusableIntegrity,
+  assertUniqueNodeIds,
+  assertUniquePageSlugs,
+  assertValidNavigation,
+  assertVariantsAndStates,
+  normalizeHomepage,
+  stripPrototypePollution,
+  walkDocumentNodes,
+  walkNodes,
+} from './document-integrity';
+import { isValidComponentVariant } from '../contracts/component-registry';
 
 export interface ValidationResult<T = WebsiteDocument | WebsiteDocumentV3> {
   isValid: boolean;
@@ -89,6 +101,7 @@ export class DocumentValidatorService {
 
     const normalized = this.normalizeV3(result.data as WebsiteDocumentV3);
     this.sanitizeDocumentV3(normalized);
+    this.assertDocumentContracts(normalized);
     return normalized;
   }
 
@@ -164,6 +177,7 @@ export class DocumentValidatorService {
       }
 
       this.ensureNodeIds(root);
+      this.normalizeNodeTree(root);
 
       return {
         ...page,
@@ -176,11 +190,27 @@ export class DocumentValidatorService {
 
     pages.sort((a, b) => a.sortOrder - b.sortOrder);
 
-    return {
+    const normalized: WebsiteDocumentV3 = {
       ...doc,
       schemaVersion: '3.0',
       pages,
+      global: {
+        headerNode: doc.global?.headerNode,
+        footerNode: doc.global?.footerNode,
+        reusableNodes: doc.global?.reusableNodes || {},
+      },
     };
+
+    if (normalized.global.headerNode) this.normalizeNodeTree(normalized.global.headerNode);
+    if (normalized.global.footerNode) this.normalizeNodeTree(normalized.global.footerNode);
+    if (normalized.global.reusableNodes) {
+      for (const node of Object.values(normalized.global.reusableNodes)) {
+        this.normalizeNodeTree(node);
+      }
+    }
+
+    normalizeHomepage(normalized);
+    return normalized;
   }
 
   /**
@@ -237,15 +267,25 @@ export class DocumentValidatorService {
 
     if (Array.isArray(doc.pages)) {
       let totalNodes = 0;
+      const countScope = (node: WebsiteNode, title: string) => {
+        totalNodes += this.countNodes(node);
+        const depth = this.calculateMaxDepth(node);
+        if (depth > maxDepth) {
+          throw new BadRequestException(
+            `Tree "${title}" exceeds maximum allowable nesting depth of ${maxDepth} (current: ${depth})`,
+          );
+        }
+      };
       for (const page of doc.pages) {
         if (page.root) {
-          totalNodes += this.countNodes(page.root);
-          const depth = this.calculateMaxDepth(page.root);
-          if (depth > maxDepth) {
-            throw new BadRequestException(
-              `Page "${page.title}" exceeds maximum allowable nesting depth of ${maxDepth} (current: ${depth})`,
-            );
-          }
+          countScope(page.root, page.title || page.id);
+        }
+      }
+      if (doc.global?.headerNode) countScope(doc.global.headerNode, 'global.header');
+      if (doc.global?.footerNode) countScope(doc.global.footerNode, 'global.footer');
+      if (doc.global?.reusableNodes) {
+        for (const [id, node] of Object.entries(doc.global.reusableNodes)) {
+          countScope(node, `reusable:${id}`);
         }
       }
 
@@ -291,10 +331,33 @@ export class DocumentValidatorService {
   }
 
   private sanitizeDocumentV3(doc: WebsiteDocumentV3): void {
-    // Sanitize any dangerous scripts or event handlers in rich-text or text props
-    for (const page of doc.pages) {
-      this.sanitizeNode(page.root);
-    }
+    stripPrototypePollution(doc);
+    walkDocumentNodes(doc, (node) => this.sanitizeNode(node));
+  }
+
+  private normalizeNodeTree(node: WebsiteNode): void {
+    this.ensureNodeIds(node);
+    walkNodes(node, (current) => {
+      if (current.type === 'rich-text' && current.props) {
+        current.props = coerceRichTextProps(current.props);
+      }
+      if (
+        !current.variant &&
+        typeof current.props?.variant === 'string' &&
+        isValidComponentVariant(current.type, current.props.variant)
+      ) {
+        current.variant = current.props.variant;
+      }
+    });
+  }
+
+  private assertDocumentContracts(doc: WebsiteDocumentV3): void {
+    assertUniqueNodeIds(doc);
+    assertUniquePageSlugs(doc);
+    assertValidNavigation(doc);
+    assertReusableIntegrity(doc);
+    assertVariantsAndStates(doc);
+    assertMediaReferences(doc);
   }
 
   private sanitizeNode(node: WebsiteNode): void {
@@ -303,12 +366,6 @@ export class DocumentValidatorService {
         if (typeof value === 'string') {
           node.props[key] = this.stripDangerousHtml(value);
         }
-      }
-    }
-
-    if (node.children && Array.isArray(node.children)) {
-      for (const child of node.children) {
-        this.sanitizeNode(child);
       }
     }
   }

@@ -136,20 +136,25 @@ async function runV2Verification() {
   );
   console.log('   ✅ Valid Save Succeeded. New Revision:', saveDocRes.data.data.revision);
 
-  // 10b. Concurrency conflict test (stale revision should throw 409)
+  // 10b. Operation batches still reject stale revisions with 409
   try {
-    await axios.put(
-      `${API_BASE}/websites/${website.id}/document`,
+    await axios.post(
+      `${API_BASE}/websites/${website.id}/document/operations`,
       {
-        document: currentDoc,
-        expectedRevision: 1, // Deliberately stale revision
+        baseRevision: 1,
+        operations: [
+          {
+            type: 'updateBusiness',
+            business: { tagline: 'Should not persist' },
+          },
+        ],
       },
       { headers: authHeaders },
     );
     throw new Error('Expected 409 Conflict error was not thrown');
   } catch (err: any) {
     if (err.response?.status === 409) {
-      console.log('   ✅ Optimistic Concurrency Conflict Correctly Rejected with 409 Conflict!');
+      console.log('   ✅ Operation batch stale revision correctly rejected with 409 Conflict!');
     } else {
       throw err;
     }

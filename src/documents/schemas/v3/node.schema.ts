@@ -7,8 +7,9 @@ import {
   StyleDefinitionSchema,
   ResponsiveStyleDefinitionSchema,
   ResponsiveVisibilitySchema,
+  ComponentStateStylesSchema,
 } from './style.schema';
-import { isAllowedChild, isLeafNode, isValidNodeType } from '../../contracts/component-registry';
+import { isAllowedChild, isLeafNode, isValidComponentVariant } from '../../contracts/component-registry';
 
 // ─── SAFE STRING HELPERS ──────────────────────────────────────────────────────
 
@@ -49,12 +50,37 @@ export const WebsiteNodeSchema: z.ZodType<WebsiteNode> = z.lazy(() =>
       styles: StyleDefinitionSchema.optional(),
       responsive: ResponsiveStyleDefinitionSchema.optional(),
       visibility: ResponsiveVisibilitySchema.optional(),
+      variant: z.string().trim().max(50).optional(),
+      states: ComponentStateStylesSchema.optional(),
+      componentRef: z
+        .string()
+        .trim()
+        .max(100)
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .optional(),
       interactions: z.array(InteractionDefinitionSchema).optional(),
       animations: AnimationDefinitionSchema.optional(),
       locked: z.boolean().optional(),
     })
     .superRefine((node, ctx) => {
       const { type, children } = node;
+
+      if (node.variant && !isValidComponentVariant(type as any, node.variant)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['variant'],
+          message: `Variant "${node.variant}" is not registered for component "${type}".`,
+        });
+      }
+
+      const mediaId = node.props?.mediaId;
+      if (typeof mediaId === 'string' && mediaId.includes('://')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['props', 'mediaId'],
+          message: 'mediaId cannot be a URL; use a tenant-owned media asset id.',
+        });
+      }
 
       if (isLeafNode(type as any) && Array.isArray(children) && children.length > 0) {
         ctx.addIssue({

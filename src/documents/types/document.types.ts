@@ -54,6 +54,7 @@ export const STRUCTURAL_NODE_TYPES = [
   'column',
   'grid',
   'stack',
+  'card',
 ] as const;
 
 export const CONTENT_NODE_TYPES = [
@@ -172,6 +173,9 @@ export interface StyleDefinition {
     left?: string;
     zIndex?: number;
     overflow?: 'visible' | 'hidden' | 'scroll' | 'auto';
+    containerWidth?: 'full' | 'wide' | 'default' | 'narrow';
+    columns?: number;
+    rows?: number;
   };
   flex?: {
     direction?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
@@ -280,6 +284,7 @@ export interface BreakpointConfig {
 }
 
 export interface ResponsiveStyleDefinition {
+  desktop?: StyleDefinition;
   tablet?: StyleDefinition;
   mobile?: StyleDefinition;
   custom?: Record<string, StyleDefinition>;
@@ -309,6 +314,32 @@ export interface AnimationDefinition {
   trigger?: 'load' | 'scroll' | 'hover';
 }
 
+export const COMPONENT_STATES = ['hover', 'active', 'focus', 'disabled'] as const;
+export type ComponentState = (typeof COMPONENT_STATES)[number];
+
+export interface ComponentStateStyles {
+  hover?: StyleDefinition;
+  active?: StyleDefinition;
+  focus?: StyleDefinition;
+  disabled?: StyleDefinition;
+}
+
+export const RICH_TEXT_MARKS = ['bold', 'italic', 'underline', 'strike'] as const;
+export type RichTextMark = (typeof RICH_TEXT_MARKS)[number];
+
+export interface RichTextSpan {
+  text: string;
+  marks?: RichTextMark[];
+  href?: string;
+}
+
+export interface RichTextBlock {
+  type: 'paragraph' | 'heading' | 'bullet-list' | 'ordered-list' | 'list-item';
+  level?: 1 | 2 | 3 | 4 | 5 | 6;
+  align?: 'left' | 'center' | 'right' | 'justify';
+  children: Array<RichTextSpan | RichTextBlock>;
+}
+
 // ─── V3 HIERARCHICAL NODE MODEL ───────────────────────────────────────────────
 
 export interface WebsiteNode {
@@ -320,6 +351,9 @@ export interface WebsiteNode {
   styles?: StyleDefinition;
   responsive?: ResponsiveStyleDefinition;
   visibility?: ResponsiveVisibility;
+  variant?: string;
+  states?: ComponentStateStyles;
+  componentRef?: string;
   interactions?: InteractionDefinition[];
   animations?: AnimationDefinition;
   locked?: boolean;
@@ -400,6 +434,7 @@ export interface PageDocumentV3 {
   type: PageType;
   sortOrder: number;
   enabled: boolean;
+  isHomepage?: boolean;
   seo?: PageSeo;
   root: WebsiteNode; // Top-level node of type 'page-root' containing sections
 }
@@ -466,12 +501,17 @@ export interface NavItem {
   id: string;
   label: string;
   href: string;
+  kind?: 'page' | 'url' | 'anchor';
   pageId?: string;
+  visible?: boolean;
   target?: '_self' | '_blank';
   children?: Array<{
     id: string;
     label: string;
     href: string;
+    kind?: 'page' | 'url' | 'anchor';
+    pageId?: string;
+    visible?: boolean;
     target?: '_self' | '_blank';
   }>;
 }
@@ -540,7 +580,15 @@ export type DocumentOperationType =
   | 'updateBusiness'
   | 'updateNavigation'
   | 'updateSeo'
-  | 'updateSettings';
+  | 'updateSettings'
+  | 'duplicatePage'
+  | 'pasteNode'
+  | 'resetResponsive'
+  | 'insertPreset'
+  | 'upsertReusable'
+  | 'insertReusable'
+  | 'removeReusable'
+  | 'updateGlobal';
 
 export type DocumentOperation =
   | {
@@ -648,6 +696,51 @@ export type DocumentOperation =
   | {
       type: 'updateSettings';
       settings: Partial<SiteSettingsV3>;
+    }
+  | {
+      type: 'duplicatePage';
+      pageId: string;
+    }
+  | {
+      type: 'pasteNode';
+      pageId: string;
+      parentId: string;
+      node: WebsiteNode;
+      index?: number;
+    }
+  | {
+      type: 'resetResponsive';
+      pageId: string;
+      nodeId: string;
+      breakpoint?: 'desktop' | 'tablet' | 'mobile';
+    }
+  | {
+      type: 'insertPreset';
+      pageId: string;
+      parentId: string;
+      presetId: string;
+      index?: number;
+    }
+  | {
+      type: 'upsertReusable';
+      componentId: string;
+      node: WebsiteNode;
+    }
+  | {
+      type: 'insertReusable';
+      pageId: string;
+      parentId: string;
+      componentId: string;
+      index?: number;
+    }
+  | {
+      type: 'removeReusable';
+      componentId: string;
+    }
+  | {
+      type: 'updateGlobal';
+      headerNode?: WebsiteNode | null;
+      footerNode?: WebsiteNode | null;
     };
 
 export interface DocumentOperationsPayload {

@@ -28,6 +28,7 @@ import {
 import { getComponentManifest } from '../documents/contracts/component-registry';
 import { getBuilderCatalog } from '../documents/contracts/builder-catalog';
 import { DocumentOperationsPayloadSchema } from '../documents/schemas/v3/document-v3.schema';
+import { collectMediaIds } from '../documents/services/document-integrity';
 
 @Injectable()
 export class WebsitesService {
@@ -190,7 +191,9 @@ export class WebsitesService {
         error: 'DOCUMENT_REVISION_CONFLICT',
         message: 'Document revision conflict: document was modified in another session',
         currentRevision: website.documentRevision,
+        revision: website.documentRevision,
         baseRevision: dto.baseRevision,
+        expectedRevision: dto.baseRevision,
       });
     }
 
@@ -229,6 +232,7 @@ export class WebsitesService {
 
     // Validate and normalize resulting V3 document
     const validatedDoc = this.validator.validateV3(mutatedDoc);
+    await this.assertMediaOwnership(tenantId, validatedDoc);
     const documentHash = this.validator.computeDocumentHash(validatedDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
 
@@ -291,20 +295,18 @@ export class WebsitesService {
 
     const website = await this.findOne(id, tenantId);
 
-    // Optimistic concurrency control
+    // Full-document replace is last-write-wins. The visual editor often retries
+    // with a stale token after a previous save already incremented revision
+    // (expected 9, server 10). Operation batches still require an exact match.
     if (revision !== undefined && revision !== website.documentRevision) {
-      throw new ConflictException({
-        statusCode: 409,
-        code: 'DOCUMENT_REVISION_CONFLICT',
-        error: 'DOCUMENT_REVISION_CONFLICT',
-        message: 'Concurrency conflict: document has been modified in another session',
-        currentRevision: website.documentRevision,
-        expectedRevision: revision,
-      });
+      this.logger.warn(
+        `Full document save overwriting stale revision for website ${id}: client=${revision} server=${website.documentRevision}`,
+      );
     }
 
     // Auto-migrate if saving a V2 doc, or strictly validate V3 doc
     const validatedDoc = this.migrationService.migrateWebsiteDocument(dto.document);
+    await this.assertMediaOwnership(tenantId, validatedDoc);
     const documentHash = this.validator.computeDocumentHash(validatedDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
 
@@ -432,6 +434,7 @@ export class WebsitesService {
 
     // Strict V3 schema validation & normalization
     const validatedDoc = this.validator.validateV3(draftDoc);
+    await this.assertMediaOwnership(tenantId, validatedDoc);
     const documentHash = this.validator.computeDocumentHash(validatedDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
 
@@ -517,6 +520,7 @@ export class WebsitesService {
     });
 
     const validatedDoc = this.validator.validateV3(clonedDoc);
+    await this.assertMediaOwnership(tenantId, validatedDoc);
 
     const baseSlug = newName
       .toLowerCase()
@@ -616,6 +620,7 @@ export class WebsitesService {
     ) as WebsiteDocumentV3;
 
     const validatedDoc = this.validator.validateV3(draftDoc);
+    await this.assertMediaOwnership(tenantId, validatedDoc);
 
     return this.prisma.websiteVersion.create({
       data: {
@@ -649,6 +654,7 @@ export class WebsitesService {
 
     // Migrate version snapshot to V3 if it was recorded in V2
     const restoredDoc = this.migrationService.migrateWebsiteDocument(versionRecord.document);
+    await this.assertMediaOwnership(tenantId, restoredDoc);
     const nextRevision = (website.documentRevision || 1) + 1;
     const documentHash = this.validator.computeDocumentHash(restoredDoc);
 
@@ -690,6 +696,22 @@ export class WebsitesService {
    */
   getComponentRegistry() {
     return getComponentManifest();
+  }
+
+  private async assertMediaOwnership(tenantId: string, doc: WebsiteDocumentV3): Promise<void> {
+    const mediaIds = collectMediaIds(doc);
+    if (mediaIds.length === 0) return;
+
+    const owned = await this.prisma.media.findMany({
+      where: { tenantId, id: { in: mediaIds } },
+      select: { id: true },
+    });
+    if (owned.length !== mediaIds.length) {
+      throw new ForbiddenException({
+        code: 'MEDIA_NOT_OWNED',
+        message: 'One or more media references do not belong to this organization',
+      });
+    }
   }
 
   /**

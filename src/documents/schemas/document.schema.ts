@@ -79,7 +79,9 @@ export const NavItemSchema: z.ZodType<any> = z.lazy(() =>
     id: safeString(100),
     label: safeString(100),
     href: safeUrl,
+    kind: z.enum(['page', 'url', 'anchor']).optional(),
     pageId: safeString(100).optional(),
+    visible: z.boolean().optional(),
     target: z.enum(['_self', '_blank']).default('_self'),
     children: z
       .array(
@@ -87,6 +89,9 @@ export const NavItemSchema: z.ZodType<any> = z.lazy(() =>
           id: safeString(100),
           label: safeString(100),
           href: safeUrl,
+          kind: z.enum(['page', 'url', 'anchor']).optional(),
+          pageId: safeString(100).optional(),
+          visible: z.boolean().optional(),
           target: z.enum(['_self', '_blank']).default('_self'),
         }),
       )

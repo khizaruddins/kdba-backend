@@ -6,7 +6,11 @@ import {
   DocumentOperation,
   PageDocumentV3,
 } from '../types/document.types';
-import { isAllowedChild, isLeafNode } from '../contracts/component-registry';
+import { isAllowedChild, isLeafNode, isValidComponentVariant } from '../contracts/component-registry';
+import { buildSectionPreset } from '../presets/section-presets';
+import { visualNodeToWebsiteNode } from './preset-to-v3';
+import { coerceRichTextProps } from './rich-text';
+import { walkDocumentNodes, collectDocumentNodeIds } from './document-integrity';
 
 export interface NodeSearchResult {
   node: WebsiteNode;
@@ -129,6 +133,38 @@ export class TreeOperationsService {
         doc.settings = { ...doc.settings, ...(op.settings as any) };
         break;
 
+      case 'duplicatePage':
+        this.duplicatePage(doc, op.pageId);
+        break;
+
+      case 'pasteNode':
+        this.pasteNode(doc, op.pageId, op.parentId, op.node, op.index);
+        break;
+
+      case 'resetResponsive':
+        this.resetResponsive(doc, op.pageId, op.nodeId, op.breakpoint);
+        break;
+
+      case 'insertPreset':
+        this.insertPreset(doc, op.pageId, op.parentId, op.presetId, op.index);
+        break;
+
+      case 'upsertReusable':
+        this.upsertReusable(doc, op.componentId, op.node);
+        break;
+
+      case 'insertReusable':
+        this.insertReusable(doc, op.pageId, op.parentId, op.componentId, op.index);
+        break;
+
+      case 'removeReusable':
+        this.removeReusable(doc, op.componentId);
+        break;
+
+      case 'updateGlobal':
+        this.updateGlobal(doc, op.headerNode, op.footerNode);
+        break;
+
       default:
         throw new BadRequestException(`Unsupported operation type: ${(op as any).type}`);
     }
@@ -171,6 +207,15 @@ export class TreeOperationsService {
     if (patch.type !== undefined) page.type = patch.type;
     if (patch.sortOrder !== undefined) page.sortOrder = patch.sortOrder;
     if (patch.enabled !== undefined) page.enabled = patch.enabled;
+    if (patch.isHomepage !== undefined) {
+      if (patch.isHomepage) {
+        for (const other of doc.pages) {
+          other.isHomepage = other.id === pageId;
+        }
+      } else {
+        page.isHomepage = false;
+      }
+    }
     if (patch.seo !== undefined) page.seo = { ...page.seo, ...patch.seo };
     doc.pages.sort((a, b) => a.sortOrder - b.sortOrder);
   }
@@ -184,6 +229,9 @@ export class TreeOperationsService {
       throw new NotFoundException(`Page with id "${pageId}" not found`);
     }
     doc.pages.splice(idx, 1);
+    if (!doc.pages.some((page) => page.isHomepage) && doc.pages[0]) {
+      doc.pages[0].isHomepage = true;
+    }
   }
 
   reorderPages(doc: WebsiteDocumentV3, pageIds: string[]): void {
@@ -238,10 +286,7 @@ export class TreeOperationsService {
       parent.children = [];
     }
 
-    // Ensure node has a stable unique ID
-    if (!node.id || this.findNode(page.root, node.id)) {
-      node.id = `${node.type.replace(/-/g, '_')}_${crypto.randomBytes(4).toString('hex')}`;
-    }
+    this.ensureSubtreeUniqueIds(doc, node);
 
     if (typeof index === 'number' && index >= 0 && index <= parent.children.length) {
       parent.children.splice(index, 0, node);
@@ -385,6 +430,13 @@ export class TreeOperationsService {
     if (patch.interactions !== undefined) node.interactions = patch.interactions;
     if (patch.animations !== undefined) node.animations = patch.animations;
     if (patch.locked !== undefined) node.locked = patch.locked;
+    if (patch.variant !== undefined) {
+      this.assertVariant(node.type, patch.variant);
+      node.variant = patch.variant;
+    }
+    if (patch.states !== undefined) node.states = patch.states;
+    if (patch.componentRef !== undefined) node.componentRef = patch.componentRef;
+    this.normalizeNodeProps(node);
   }
 
   updateProps(
@@ -399,6 +451,13 @@ export class TreeOperationsService {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
     node.props = { ...node.props, ...props };
+    if (
+      typeof node.props.variant === 'string' &&
+      isValidComponentVariant(node.type, node.props.variant)
+    ) {
+      node.variant = node.props.variant;
+    }
+    this.normalizeNodeProps(node);
   }
 
   updateStyles(
@@ -515,6 +574,150 @@ export class TreeOperationsService {
     parent.children = reordered;
   }
 
+  duplicatePage(doc: WebsiteDocumentV3, pageId: string): PageDocumentV3 {
+    const source = this.findPage(doc, pageId);
+    const newId = `page_${crypto.randomBytes(4).toString('hex')}`;
+    let slug = source.slug === '/' ? '/copy' : `${source.slug.replace(/\/$/, '')}-copy`;
+    let attempt = 2;
+    while (doc.pages.some((page) => page.slug === slug)) {
+      slug = source.slug === '/' ? `/copy-${attempt}` : `${source.slug.replace(/\/$/, '')}-copy-${attempt}`;
+      attempt += 1;
+    }
+
+    const clonedRoot = this.cloneSubtreeWithNewIds(source.root, { suffixName: false });
+    clonedRoot.id = `root_${newId}`;
+
+    const page: PageDocumentV3 = {
+      id: newId,
+      title: `${source.title} (Copy)`,
+      slug,
+      type: source.type === 'home' ? 'custom' : source.type,
+      sortOrder: doc.pages.length,
+      enabled: source.enabled,
+      isHomepage: false,
+      seo: source.seo ? JSON.parse(JSON.stringify(source.seo)) : undefined,
+      root: clonedRoot,
+    };
+
+    doc.pages.push(page);
+    return page;
+  }
+
+  pasteNode(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    parentId: string,
+    node: WebsiteNode,
+    index?: number,
+  ): WebsiteNode {
+    const cloned = this.cloneSubtreeWithNewIds(node, { suffixName: false });
+    this.addNode(doc, pageId, parentId, cloned, index);
+    return cloned;
+  }
+
+  resetResponsive(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    nodeId: string,
+    breakpoint?: 'desktop' | 'tablet' | 'mobile',
+  ): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.findNode(page.root, nodeId);
+    if (!node) {
+      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
+    }
+    if (!breakpoint) {
+      delete node.responsive;
+      return;
+    }
+    if (!node.responsive) return;
+    delete node.responsive[breakpoint];
+    if (
+      !node.responsive.desktop &&
+      !node.responsive.tablet &&
+      !node.responsive.mobile &&
+      !node.responsive.custom
+    ) {
+      delete node.responsive;
+    }
+  }
+
+  insertPreset(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    parentId: string,
+    presetId: string,
+    index?: number,
+  ): WebsiteNode {
+    let visual;
+    try {
+      visual = buildSectionPreset(presetId);
+    } catch {
+      throw new BadRequestException(`Unknown section preset "${presetId}"`);
+    }
+    const node = visualNodeToWebsiteNode(visual);
+    this.addNode(doc, pageId, parentId, node, index);
+    return node;
+  }
+
+  upsertReusable(doc: WebsiteDocumentV3, componentId: string, node: WebsiteNode): void {
+    if (!doc.global) {
+      doc.global = { reusableNodes: {} };
+    }
+    if (!doc.global.reusableNodes) {
+      doc.global.reusableNodes = {};
+    }
+    const stored = this.cloneSubtreeWithNewIds(node, { suffixName: false });
+    stored.id = `reusable_${componentId}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+    this.ensureSubtreeUniqueIds(doc, stored, new Set([stored.id]));
+    doc.global.reusableNodes[componentId] = stored;
+  }
+
+  insertReusable(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    parentId: string,
+    componentId: string,
+    index?: number,
+  ): WebsiteNode {
+    const definition = doc.global?.reusableNodes?.[componentId];
+    if (!definition) {
+      throw new NotFoundException(`Reusable component "${componentId}" not found`);
+    }
+    const instance = this.cloneSubtreeWithNewIds(definition, { suffixName: false });
+    instance.componentRef = componentId;
+    this.addNode(doc, pageId, parentId, instance, index);
+    return instance;
+  }
+
+  removeReusable(doc: WebsiteDocumentV3, componentId: string): void {
+    if (!doc.global?.reusableNodes?.[componentId]) {
+      throw new NotFoundException(`Reusable component "${componentId}" not found`);
+    }
+    delete doc.global.reusableNodes[componentId];
+    walkDocumentNodes(doc, (node) => {
+      if (node.componentRef === componentId) {
+        delete node.componentRef;
+      }
+    });
+  }
+
+  updateGlobal(
+    doc: WebsiteDocumentV3,
+    headerNode?: WebsiteNode | null,
+    footerNode?: WebsiteNode | null,
+  ): void {
+    if (!doc.global) {
+      doc.global = { reusableNodes: {} };
+    }
+    if (headerNode !== undefined) {
+      doc.global.headerNode = headerNode === null ? undefined : headerNode;
+    }
+    if (footerNode !== undefined) {
+      doc.global.footerNode = footerNode === null ? undefined : footerNode;
+    }
+  }
+
   // ─── UTILITY TRAVERSAL METHODS ──────────────────────────────────────────────
 
   findPage(doc: WebsiteDocumentV3, pageId: string): PageDocumentV3 {
@@ -586,20 +789,61 @@ export class TreeOperationsService {
     return max;
   }
 
-  cloneSubtreeWithNewIds(node: WebsiteNode): WebsiteNode {
+  cloneSubtreeWithNewIds(
+    node: WebsiteNode,
+    options: { suffixName?: boolean } = { suffixName: true },
+  ): WebsiteNode {
     const suffix = crypto.randomBytes(3).toString('hex');
     const newId = `${node.type.replace(/-/g, '_')}_${Date.now().toString(36)}_${suffix}`;
 
     const cloned: WebsiteNode = {
       ...JSON.parse(JSON.stringify(node)),
       id: newId,
-      name: node.name ? `${node.name} (Copy)` : undefined,
+      name:
+        options.suffixName && node.name
+          ? `${node.name} (Copy)`
+          : node.name,
     };
 
     if (node.children && Array.isArray(node.children)) {
-      cloned.children = node.children.map((child) => this.cloneSubtreeWithNewIds(child));
+      cloned.children = node.children.map((child) =>
+        this.cloneSubtreeWithNewIds(child, options),
+      );
     }
 
     return cloned;
+  }
+
+  private ensureSubtreeUniqueIds(
+    doc: WebsiteDocumentV3,
+    node: WebsiteNode,
+    extraUsed: Set<string> = new Set(),
+  ): void {
+    const used = new Set([...collectDocumentNodeIds(doc), ...extraUsed]);
+    const remap = (current: WebsiteNode) => {
+      if (!current.id || used.has(current.id)) {
+        current.id = `${current.type.replace(/-/g, '_')}_${crypto.randomBytes(4).toString('hex')}`;
+      }
+      used.add(current.id);
+      extraUsed.add(current.id);
+      if (current.children) {
+        for (const child of current.children) remap(child);
+      }
+    };
+    remap(node);
+  }
+
+  private assertVariant(type: WebsiteNode['type'], variant: string): void {
+    if (!isValidComponentVariant(type, variant)) {
+      throw new BadRequestException(
+        `Variant "${variant}" is not registered for component "${type}"`,
+      );
+    }
+  }
+
+  private normalizeNodeProps(node: WebsiteNode): void {
+    if (node.type === 'rich-text' && node.props) {
+      node.props = coerceRichTextProps(node.props);
+    }
   }
 }
