@@ -18,7 +18,10 @@ export class PublishingController {
 
   @Get('public/sites/:slug')
   @Public()
-  @ApiOperation({ summary: 'Get published website data for rendering' })
+  @ApiOperation({
+    summary:
+      'Get website data for rendering. Slug returns the published site only; website id also renders an unpublished draft for editor Preview.',
+  })
   async getPublicWebsite(@Param('slug') slug: string) {
     return this.publishingService.getPublicWebsite(slug);
   }

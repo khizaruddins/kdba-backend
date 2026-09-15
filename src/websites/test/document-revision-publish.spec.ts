@@ -160,7 +160,41 @@ describe('Website document revisions, publish, and authorization', () => {
     });
     prisma.website.findFirst.mockResolvedValue(null);
 
-    await expect(publishing.getPublicWebsite('kdba-studio')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(publishing.getPublicWebsite('kdba-studio')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('renders an unpublished draft when the public URL uses the website id', async () => {
+    const validator = new DocumentValidatorService();
+    const migration = new DocumentMigrationService(validator);
+    const draft = migration.migrateWebsiteDocument(dentalClinicTemplate.document);
+
+    prisma.tenant.findUnique.mockResolvedValue(null);
+    prisma.website.findFirst.mockResolvedValue({
+      ...websiteRecord,
+      status: 'DRAFT',
+      draftDocument: draft,
+      publishedDocument: null,
+      tenant: {
+        name: 'KDBA Studio',
+        slug: 'kdba-studio',
+        status: 'ACTIVE',
+        blockedReason: null,
+        blockedAt: null,
+        updatedAt: new Date(),
+        products: [],
+        pricingPlans: [],
+      },
+      pages: [],
+    });
+
+    const result = (await publishing.getPublicWebsite(websiteId)) as {
+      document: { schemaVersion: string };
+      website: { id: string };
+    };
+    expect(result.document.schemaVersion).toBe('3.0');
+    expect(result.website.id).toBe(websiteId);
   });
 
   it('returns only published data and never draft section config', async () => {

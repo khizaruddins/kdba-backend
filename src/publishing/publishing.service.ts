@@ -25,14 +25,13 @@ export class PublishingService {
 
   /**
    * Public website resolver:
-   * Resolves published website data by tenant slug or website slug.
-   * Returns clean, public-only configuration including canonical V3 WebsiteDocument,
-   * business, pages, products, and pricing.
+   * - Tenant slug or website slug: published snapshot only.
+   * - Website id (editor /site/:id preview): published snapshot, or draft if never published.
    */
-  async getPublicWebsite(slug: string) {
+  async getPublicWebsite(slugOrId: string) {
     // 1. Look up by tenant slug first
     const tenant = await this.prisma.tenant.findUnique({
-      where: { slug },
+      where: { slug: slugOrId },
       include: {
         businesses: { take: 1 },
         websites: {
@@ -87,12 +86,14 @@ export class PublishingService {
         website,
         tenant.products,
         tenant.pricingPlans,
+        { allowDraft: false },
       );
     }
 
-    // 2. Fallback check: look for website directly by slug
     const website = await this.prisma.website.findFirst({
-      where: { slug },
+      where: {
+        OR: [{ slug: slugOrId }, { id: slugOrId }],
+      },
       include: {
         tenant: {
           include: {
@@ -149,6 +150,7 @@ export class PublishingService {
       website,
       website.tenant.products,
       website.tenant.pricingPlans,
+      { allowDraft: website.id === slugOrId },
     );
   }
 
@@ -201,8 +203,10 @@ export class PublishingService {
     website: any,
     products: any[],
     pricingPlans: any[],
+    options: { allowDraft?: boolean } = {},
   ) {
-    // Resolve published document only. Never leak draft editor state.
+    // Pretty public URLs never leak draft editor state.
+    // /site/:websiteId (editor Preview) may render the draft if unpublished.
     let canonicalDoc: WebsiteDocumentV3 | null = null;
 
     if (website.publishedDocument) {
@@ -218,6 +222,10 @@ export class PublishingService {
           website.template,
           true,
         ),
+      );
+    } else if (options.allowDraft && website.draftDocument) {
+      canonicalDoc = this.migrationService.migrateWebsiteDocument(
+        website.draftDocument,
       );
     }
 

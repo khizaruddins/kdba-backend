@@ -101,6 +101,7 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       'spacer',
       'navbar',
       'footer',
+      'section',
     ],
     defaultProps: {
       fullWidth: true,
@@ -1490,6 +1491,21 @@ const CARD_PARENTS: NodeType[] = ['section', 'container', 'row', 'column', 'grid
 for (const parent of CARD_PARENTS) {
   if (!COMPONENT_REGISTRY[parent].allowedChildren.includes('card')) {
     COMPONENT_REGISTRY[parent].allowedChildren.push('card');
+  }
+}
+
+const SECTION_PARENTS: NodeType[] = [
+  'section',
+  'container',
+  'stack',
+  'column',
+  'grid',
+  'row',
+  'card',
+];
+for (const parent of SECTION_PARENTS) {
+  if (!COMPONENT_REGISTRY[parent].allowedChildren.includes('section')) {
+    COMPONENT_REGISTRY[parent].allowedChildren.push('section');
   }
 }
 

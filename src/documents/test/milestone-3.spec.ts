@@ -132,6 +132,7 @@ describe('Milestone 3 — live V3 builder infrastructure', () => {
       expect(card?.variants).toEqual(['default', 'elevated', 'bordered']);
       expect(isAllowedChild('container', 'card')).toBe(true);
       expect(isAllowedChild('stack', 'grid')).toBe(true);
+      expect(isAllowedChild('section', 'section')).toBe(true);
       expect(isAllowedChild('page-root', 'heading')).toBe(false);
     });
 
@@ -172,6 +173,12 @@ describe('Milestone 3 — live V3 builder infrastructure', () => {
       const grid = getDefaultNode('grid', 'grid_in_stack');
       treeOps.addNode(doc, 'page_home', 'container_hero', stack);
       treeOps.addNode(doc, 'page_home', 'stack_layout', grid);
+      expect(validator.validateV3(doc).pages[0].root).toBeDefined();
+    });
+
+    it('allows a nested section inside a section', () => {
+      const inner = getDefaultNode('section', 'sec_nested');
+      treeOps.addNode(doc, 'page_home', 'sec_hero', inner);
       expect(validator.validateV3(doc).pages[0].root).toBeDefined();
     });
 
