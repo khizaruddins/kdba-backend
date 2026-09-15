@@ -1,12 +1,16 @@
 import {
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DocumentMigrationService } from '../documents/services/document-migration.service';
 import { WebsitesService } from '../websites/websites.service';
 import { CreateLeadDto } from '../leads/dto/lead.dto';
 import { WebsiteDocumentV3 } from '../documents/types/document.types';
+import { validateContactSubmission } from '../documents/contracts/form-fields';
+import { collectDocumentFormFields } from '../documents/services/document-integrity';
+import { CmsService } from '../cms/cms.service';
 
 @Injectable()
 export class PublishingService {
@@ -14,6 +18,7 @@ export class PublishingService {
     private readonly prisma: PrismaService,
     private readonly migrationService: DocumentMigrationService,
     private readonly websitesService: WebsitesService,
+    private readonly cmsService: CmsService,
   ) {}
 
   /**
@@ -155,7 +160,8 @@ export class PublishingService {
   }
 
   /**
-   * Public contact form submission creating a lead
+   * Public contact form submission creating a lead.
+   * Visual contact layouts share this same lead pipeline.
    */
   async submitContact(slug: string, dto: CreateLeadDto) {
     const tenant = await this.prisma.tenant.findUnique({
@@ -163,9 +169,15 @@ export class PublishingService {
     });
 
     let tenantId = tenant?.id;
+    let website = tenant
+      ? await this.prisma.website.findFirst({
+          where: { tenantId: tenant.id },
+          orderBy: { updatedAt: 'desc' },
+        })
+      : null;
 
     if (!tenantId) {
-      const website = await this.prisma.website.findFirst({
+      website = await this.prisma.website.findFirst({
         where: { slug },
       });
       if (!website) {
@@ -174,14 +186,35 @@ export class PublishingService {
       tenantId = website.tenantId;
     }
 
+    let schema;
+    if (website?.publishedDocument) {
+      try {
+        const doc = this.migrationService.migrateWebsiteDocument(website.publishedDocument);
+        const forms = collectDocumentFormFields(doc);
+        if (forms.length === 1) schema = forms[0];
+      } catch {
+        schema = undefined;
+      }
+    }
+
+    let validated;
+    try {
+      validated = validateContactSubmission(dto, schema);
+    } catch (error: any) {
+      throw new BadRequestException({
+        code: 'INVALID_CONTACT_SUBMISSION',
+        message: error.message,
+      });
+    }
+
     const lead = await this.prisma.lead.create({
       data: {
         tenantId,
-        name: dto.name,
-        email: dto.email,
-        phone: dto.phone,
-        message: dto.message,
-        source: dto.source || 'contact_form',
+        name: validated.name,
+        email: validated.email,
+        phone: validated.phone,
+        message: validated.message,
+        source: validated.source,
         status: 'NEW',
       },
     });
@@ -197,7 +230,7 @@ export class PublishingService {
    * Format public website response delivering canonical V3 WebsiteDocument
    * with complete tenant shielding and CDN cache-friendly structure.
    */
-  private formatPublicResponse(
+  private async formatPublicResponse(
     tenant: any,
     business: any,
     website: any,
@@ -233,6 +266,12 @@ export class PublishingService {
       throw new NotFoundException('Website not found');
     }
 
+    const cms = await this.cmsService.resolvePublishedForWebsite(
+      website.id,
+      website.tenantId || tenant.id,
+      canonicalDoc,
+    );
+
     return {
       tenant: {
         name: tenant.name,
@@ -254,6 +293,7 @@ export class PublishingService {
             zipCode: business.zipCode,
             socialMedia: business.socialMedia,
             businessHours: business.businessHours,
+            locations: business.locations ?? [],
           }
         : null,
       document: this.stripEditorMetadata(canonicalDoc) as WebsiteDocumentV3,
@@ -305,16 +345,35 @@ export class PublishingService {
         ctaUrl: plan.ctaUrl,
         isRecommended: plan.isRecommended,
       })),
+      cms,
     };
   }
 
+  /**
+   * Drop draft/editor bookkeeping from the public payload.
+   * Semantic editor types (navbar, footer, contact-form, …) are stored on wire as
+   * section/stack + props.kdbaEditorType — promote that onto `type` before stripping
+   * so public NodeRenderer can dispatch correctly.
+   */
   private stripEditorMetadata(value: unknown): unknown {
     if (Array.isArray(value)) {
       return value.map((item) => this.stripEditorMetadata(item));
     }
     if (value && typeof value === 'object') {
+      const source = value as Record<string, unknown>;
+      const propsIn =
+        source.props && typeof source.props === 'object'
+          ? (source.props as Record<string, unknown>)
+          : undefined;
+      const editorType =
+        typeof source.kdbaEditorType === 'string'
+          ? source.kdbaEditorType
+          : typeof propsIn?.kdbaEditorType === 'string'
+            ? String(propsIn.kdbaEditorType)
+            : undefined;
+
       const next: Record<string, unknown> = {};
-      for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      for (const [key, nested] of Object.entries(source)) {
         if (
           key === 'kdbaEditorType' ||
           key === 'draftDocument' ||
@@ -324,6 +383,15 @@ export class PublishingService {
           continue;
         }
         next[key] = this.stripEditorMetadata(nested);
+      }
+
+      if (editorType && typeof next.type === 'string') {
+        next.type = editorType;
+        if (next.props && typeof next.props === 'object') {
+          const props = { ...(next.props as Record<string, unknown>) };
+          delete props.kdbaEditorType;
+          next.props = props;
+        }
       }
       return next;
     }

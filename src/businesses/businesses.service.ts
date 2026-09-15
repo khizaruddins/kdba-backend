@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBusinessDto, UpdateBusinessDto } from './dto';
+import { parseLocations } from '../cms/cms-validation';
 
 @Injectable()
 export class BusinessesService {
@@ -34,6 +35,9 @@ export class BusinessesService {
         zipCode: dto.zipCode,
         socialMedia: dto.socialMedia as object,
         businessHours: dto.businessHours as object,
+        ...(dto.locations !== undefined && {
+          locations: parseLocations(dto.locations) as object,
+        }),
       },
     });
   }
@@ -86,6 +90,9 @@ export class BusinessesService {
         }),
         ...(dto.businessHours !== undefined && {
           businessHours: dto.businessHours as Prisma.InputJsonValue,
+        }),
+        ...(dto.locations !== undefined && {
+          locations: parseLocations(dto.locations) as Prisma.InputJsonValue,
         }),
       },
     });

@@ -7,6 +7,7 @@ import { DocumentMigrationService } from '../../documents/services/document-migr
 import { TreeOperationsService } from '../../documents/services/tree-operations.service';
 import { TemplatesService } from '../../templates/templates.service';
 import { PublishingService } from '../../publishing/publishing.service';
+import { CmsService } from '../../cms/cms.service';
 import { dentalClinicTemplate } from '../../templates/data/definitions/dental-clinic';
 
 function codeOf(error: unknown): string {
@@ -91,6 +92,10 @@ describe('Website document revisions, publish, and authorization', () => {
         { provide: DocumentMigrationService, useValue: migration },
         { provide: TreeOperationsService, useValue: treeOps },
         { provide: TemplatesService, useValue: {} },
+        {
+          provide: CmsService,
+          useValue: { resolvePublishedForWebsite: jest.fn().mockResolvedValue({ collections: [] }) },
+        },
       ],
     }).compile();
 

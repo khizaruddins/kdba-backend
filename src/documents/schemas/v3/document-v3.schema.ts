@@ -31,13 +31,28 @@ const safeUrl = z
 export const PageDocumentV3Schema = z.object({
   id: safeString(100),
   title: safeString(150),
-  slug: z.string().trim().regex(/^(\/|\/[a-z0-9-_/]*)$/, 'Invalid page slug format (must begin with /)'),
+  slug: z
+    .string()
+    .trim()
+    .regex(
+      /^(\/|\/[a-z0-9-_/]*|\/[a-z0-9-_/]*:slug)$/,
+      'Invalid page slug format (must begin with /; dynamic item pages may end with :slug)',
+    ),
   type: z
     .enum(['home', 'about', 'services', 'contact', 'pricing', 'portfolio', 'blog', 'custom'])
     .default('custom'),
   sortOrder: z.number().int().default(0),
   enabled: z.boolean().default(true),
   isHomepage: z.boolean().optional(),
+  showInNavigation: z.boolean().optional(),
+  kind: z.enum(['static', 'collection-index', 'collection-item']).optional(),
+  collection: z
+    .object({
+      slug: z.string().trim().regex(/^[a-z][a-z0-9-]{0,63}$/),
+      itemParam: z.literal('slug').optional(),
+    })
+    .strict()
+    .optional(),
   seo: z
     .object({
       title: safeString(200).optional(),
@@ -50,6 +65,24 @@ export const PageDocumentV3Schema = z.object({
   root: WebsiteNodeSchema.refine((node) => node.type === 'page-root', {
     message: 'Page root node must be of type "page-root"',
   }),
+}).superRefine((page, ctx) => {
+  if (
+    (page.kind === 'collection-index' || page.kind === 'collection-item') &&
+    !page.collection?.slug
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['collection'],
+      message: 'Dynamic collection pages must declare collection.slug',
+    });
+  }
+  if (page.kind === 'collection-item' && !page.slug.endsWith(':slug')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['slug'],
+      message: 'Collection item pages must use a /path/:slug route',
+    });
+  }
 });
 
 // ─── GLOBAL COMPONENTS V3 SCHEMA ──────────────────────────────────────────────
@@ -224,6 +257,44 @@ export const DocumentOperationSchema = z.discriminatedUnion('type', [
     parentId: safeString(100),
     presetId: safeString(100),
     index: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('insertBlock'),
+    pageId: safeString(100),
+    parentId: safeString(100),
+    blockId: safeString(100),
+    index: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('insertSection'),
+    pageId: safeString(100),
+    parentId: safeString(100),
+    blockId: safeString(100),
+    index: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('replaceSubtree'),
+    pageId: safeString(100),
+    nodeId: safeString(100),
+    node: WebsiteNodeSchema,
+  }),
+  z.object({
+    type: z.literal('renameNode'),
+    pageId: safeString(100),
+    nodeId: safeString(100),
+    name: safeString(100),
+  }),
+  z.object({
+    type: z.literal('hideNode'),
+    pageId: safeString(100),
+    nodeId: safeString(100),
+    hidden: z.boolean(),
+  }),
+  z.object({
+    type: z.literal('setLocked'),
+    pageId: safeString(100),
+    nodeId: safeString(100),
+    locked: z.boolean(),
   }),
   z.object({
     type: z.literal('upsertReusable'),

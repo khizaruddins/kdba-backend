@@ -118,7 +118,9 @@ describe('End-to-End Visual Website Builder Scenario (Requirement 66)', () => {
       treeOps,
       templatesService,
     );
-    publishingService = new PublishingService(mockPrisma, migrationService, websitesService);
+    publishingService = new PublishingService(mockPrisma, migrationService, websitesService, {
+      resolvePublishedForWebsite: jest.fn().mockResolvedValue({ collections: [] }),
+    } as any);
   });
 
   it('executes full E2E flow: Create -> Template -> Add Section/Container/Heading -> Edit -> Style -> Move -> Duplicate -> Delete -> Concurrency -> Publish -> Public Fetch', async () => {

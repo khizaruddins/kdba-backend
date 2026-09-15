@@ -252,7 +252,7 @@ export class AuthService {
       this.configService.get<string>('JWT_REFRESH_SECRET') ||
       'kdba-refresh-secret-change-in-production';
     const accessExpiresIn =
-      this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '15m';
+      this.configService.get<string>('JWT_ACCESS_EXPIRES_IN') || '1d';
     const refreshExpiresIn =
       this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d';
 

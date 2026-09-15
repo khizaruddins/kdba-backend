@@ -88,6 +88,12 @@ enum TemplateCategory {
   PROFESSIONAL
 }
 
+enum CmsRecordStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 // ─── USER ─────────────────────────────────────────────────────────────────────
 
 model User {
@@ -126,10 +132,12 @@ model Tenant {
   media         Media[]
   products      Product[]
   pricingPlans  PricingPlan[]
-  leads         Lead[]
-  subscriptions TenantSubscription[]
-  invoices      Invoice[]
-  payments      PaymentTransaction[]
+  leads          Lead[]
+  subscriptions  TenantSubscription[]
+  invoices       Invoice[]
+  payments       PaymentTransaction[]
+  cmsCollections CmsCollection[]
+  cmsRecords     CmsRecord[]
 
   @@index([slug])
   @@index([status])
@@ -160,6 +168,7 @@ model Business {
   description   String?
   category      String?
   logoUrl       String?
+  faviconUrl    String?
   email         String?
   phone         String?
   whatsapp      String?
@@ -171,6 +180,7 @@ model Business {
   website       String?
   socialMedia   Json? // { facebook, instagram, twitter, linkedin, youtube }
   businessHours Json? // { mon: { open, close }, tue: { open, close }, ... }
+  locations     Json? // [{ name, address, city, phone, email, hours }]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -262,6 +272,8 @@ model Website {
   template          Template         @relation(fields: [templateId], references: [id])
   pages             Page[]
   versions          WebsiteVersion[]
+  cmsCollections    CmsCollection[]
+  cmsRecords        CmsRecord[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -316,6 +328,79 @@ model Section {
   page            Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
 
   @@index([pageId])
+}
+
+// ─── CMS COLLECTIONS (M4) ─────────────────────────────────────────────────────
+// Generic collections/records. WebsiteDocument stays the presentation source of truth.
+
+model CmsCollection {
+  id          String      @id @default(cuid())
+  tenantId    String
+  websiteId   String
+  name        String
+  slug        String
+  description String?
+  fields      Json
+  settings    Json?
+  presetKey   String?
+  isBuiltin   Boolean     @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  website     Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  records     CmsRecord[]
+
+  @@unique([websiteId, slug])
+  @@index([tenantId])
+  @@index([websiteId])
+  @@index([tenantId, websiteId])
+  @@index([websiteId, deletedAt])
+  @@index([presetKey])
+}
+
+model CmsRecord {
+  id           String              @id @default(cuid())
+  tenantId     String
+  websiteId    String
+  collectionId String
+  slug         String?
+  status       CmsRecordStatus     @default(DRAFT)
+  data         Json
+  sortOrder    Int                 @default(0)
+  deletedAt    DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  website      Website             @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  collection   CmsCollection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  revisions    CmsRecordRevision[]
+
+  @@unique([collectionId, slug])
+  @@index([tenantId])
+  @@index([websiteId])
+  @@index([collectionId])
+  @@index([collectionId, status])
+  @@index([websiteId, status])
+  @@index([tenantId, websiteId, status])
+  @@index([slug])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([collectionId, deletedAt, status])
+  @@index([websiteId, deletedAt])
+}
+
+model CmsRecordRevision {
+  id        String          @id @default(cuid())
+  recordId  String
+  data      Json
+  slug      String?
+  status    CmsRecordStatus
+  createdAt DateTime        @default(now())
+  record    CmsRecord       @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+  @@index([recordId, createdAt])
 }
 
 // ─── MEDIA ────────────────────────────────────────────────────────────────────

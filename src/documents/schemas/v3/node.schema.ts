@@ -61,6 +61,40 @@ export const WebsiteNodeSchema: z.ZodType<WebsiteNode> = z.lazy(() =>
       interactions: z.array(InteractionDefinitionSchema).optional(),
       animations: AnimationDefinitionSchema.optional(),
       locked: z.boolean().optional(),
+      binding: z
+        .object({
+          source: z.enum(['collection', 'record', 'business']),
+          collection: z
+            .string()
+            .trim()
+            .regex(/^[a-z][a-z0-9-]{0,63}$/)
+            .optional(),
+          field: z
+            .string()
+            .trim()
+            .regex(/^[a-zA-Z][a-zA-Z0-9_-]{0,47}$/)
+            .optional(),
+          recordSlug: z
+            .string()
+            .trim()
+            .regex(/^[a-z0-9-]{1,80}$/)
+            .optional(),
+          fallback: z.string().max(500).optional(),
+        })
+        .strict()
+        .superRefine((binding, ctx) => {
+          if (
+            (binding.source === 'collection' || binding.source === 'record') &&
+            !binding.collection
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['collection'],
+              message: 'collection slug is required for collection and record bindings',
+            });
+          }
+        })
+        .optional(),
     })
     .superRefine((node, ctx) => {
       const { type, children } = node;

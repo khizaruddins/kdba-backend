@@ -31,6 +31,8 @@ import {
   assertUniquePageSlugs,
   assertValidNavigation,
   assertVariantsAndStates,
+  assertFormFields,
+  assertCmsBindings,
   normalizeHomepage,
   stripPrototypePollution,
   walkDocumentNodes,
@@ -358,6 +360,8 @@ export class DocumentValidatorService {
     assertReusableIntegrity(doc);
     assertVariantsAndStates(doc);
     assertMediaReferences(doc);
+    assertFormFields(doc);
+    assertCmsBindings(doc);
   }
 
   private sanitizeNode(node: WebsiteNode): void {

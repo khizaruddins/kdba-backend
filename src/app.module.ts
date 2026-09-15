@@ -20,6 +20,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { PublishingModule } from './publishing/publishing.module';
 import { HealthModule } from './health/health.module';
 import { AdminModule } from './admin/admin.module';
+import { CmsModule } from './cms/cms.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { AdminModule } from './admin/admin.module';
     LeadsModule,
     DashboardModule,
     PublishingModule,
+    CmsModule,
     HealthModule,
   ],
   providers: [

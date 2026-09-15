@@ -7,6 +7,7 @@ import {
   MaxLength,
   IsObject,
   ValidateIf,
+  IsArray,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 
@@ -102,6 +103,11 @@ export class CreateBusinessDto {
   @IsObject()
   @IsOptional()
   businessHours?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsArray()
+  @IsOptional()
+  locations?: unknown[];
 }
 
 export class UpdateBusinessDto {
@@ -203,4 +209,9 @@ export class UpdateBusinessDto {
   @IsObject()
   @IsOptional()
   businessHours?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsArray()
+  @IsOptional()
+  locations?: unknown[];
 }

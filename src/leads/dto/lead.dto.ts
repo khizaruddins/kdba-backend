@@ -5,6 +5,7 @@ import {
   IsString,
   IsEmail,
   IsEnum,
+  IsObject,
   MaxLength,
 } from 'class-validator';
 
@@ -47,6 +48,33 @@ export class CreateLeadDto {
   @IsOptional()
   @MaxLength(100)
   source?: string;
+
+  @ApiPropertyOptional({ example: 'Website launch' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  subject?: string;
+
+  @ApiPropertyOptional({ example: 'Horizon Studio' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  company?: string;
+
+  @ApiPropertyOptional({ example: 'https://horizon.studio' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  website?: string;
+
+  @ApiPropertyOptional({
+    description: 'Additional form values keyed by field id. Validated server-side.',
+    type: 'object',
+    additionalProperties: true,
+  })
+  @IsObject()
+  @IsOptional()
+  fields?: Record<string, unknown>;
 }
 
 export class UpdateLeadDto {

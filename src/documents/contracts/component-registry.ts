@@ -6,6 +6,7 @@ import {
   ComponentState,
 } from '../types/document.types';
 import * as crypto from 'crypto';
+import { CONTACT_FORM_VARIANTS, defaultContactFormProps } from './form-fields';
 
 export interface ComponentCapabilities {
   canHaveChildren: boolean;
@@ -25,12 +26,21 @@ export interface EditableFieldDefinition {
   kind: 'text' | 'rich-text' | 'url' | 'media' | 'select' | 'boolean' | 'number' | 'variant';
 }
 
+export interface ChildRules {
+  min?: number;
+  max?: number;
+  allowedTypes: NodeType[];
+}
+
 export interface ComponentDefinition {
   type: NodeType;
   category: 'structural' | 'content' | 'media' | 'business' | 'navigation';
   name: string;
   description: string;
+  icon?: string;
+  version?: number;
   allowedChildren: NodeType[];
+  allowedParents?: NodeType[];
   defaultProps: Record<string, unknown>;
   defaultStyles: StyleDefinition;
   capabilities: ComponentCapabilities;
@@ -38,7 +48,9 @@ export interface ComponentDefinition {
   variants?: string[];
   states?: ComponentState[];
   editableFields?: EditableFieldDefinition[];
+  childRules?: ChildRules;
   supportedResponsive?: Array<'layout' | 'flex' | 'grid' | 'size' | 'spacing' | 'typography' | 'background' | 'border' | 'effects' | 'visibility'>;
+  supportedResponsiveProperties?: Array<'layout' | 'flex' | 'grid' | 'size' | 'spacing' | 'typography' | 'background' | 'border' | 'effects' | 'visibility'>;
 }
 
 // ─── COMPONENT REGISTRY DEFINITIONS ───────────────────────────────────────────
@@ -341,7 +353,7 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       columns: 3,
       gap: '24px',
     },
-    variants: ['default', 'dense'],
+    variants: ['default', 'dense', 'masonry'],
     states: ['hover'],
     editableFields: [
       { key: 'columns', label: 'Columns', kind: 'number' },
@@ -459,6 +471,11 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
       'divider',
       'spacer',
       'list',
+      'quote',
+      'form',
+      'contact-form',
+      'map',
+      'opening-hours',
     ],
     defaultProps: {
       href: '',
@@ -920,6 +937,7 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
     editableFields: [
       { key: 'mediaId', label: 'Media', kind: 'media' },
       { key: 'alt', label: 'Alt text', kind: 'text' },
+      { key: 'aspectRatio', label: 'Aspect ratio', kind: 'text' },
       { key: 'objectFit', label: 'Object fit', kind: 'select' },
       { key: 'objectPosition', label: 'Object position', kind: 'text' },
       { key: 'href', label: 'Link', kind: 'url' },
@@ -1077,17 +1095,11 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
     category: 'business',
     name: 'Form Container',
     description: 'Configurable interactive form wrapper connected to backend lead handling.',
-    allowedChildren: ['heading', 'paragraph', 'text', 'button', 'divider', 'spacer'],
-    defaultProps: {
-      action: 'leads',
-      fields: [
-        { id: 'name', type: 'text', label: 'Full Name', required: true, placeholder: 'John Doe' },
-        { id: 'email', type: 'email', label: 'Email Address', required: true, placeholder: 'john@example.com' },
-        { id: 'message', type: 'textarea', label: 'Message', required: true, placeholder: 'How can we help you?' },
-      ],
-      submitLabel: 'Send Inquiry',
-    },
-    variants: ['default', 'compact', 'card'],
+    icon: 'form',
+    version: 1,
+    allowedChildren: ['heading', 'paragraph', 'text', 'button', 'divider', 'spacer', 'stack', 'icon'],
+    defaultProps: defaultContactFormProps('simple'),
+    variants: ['default', 'compact', 'card', ...CONTACT_FORM_VARIANTS],
     states: ['hover', 'focus'],
     editableFields: [{ key: 'submitLabel', label: 'Submit label', kind: 'text' }],
     supportedResponsive: ['layout', 'spacing', 'background', 'border', 'visibility'],
@@ -1118,14 +1130,16 @@ export const COMPONENT_REGISTRY: Record<NodeType, ComponentDefinition> = {
     category: 'business',
     name: 'Contact Form',
     description: 'Pre-configured contact lead generation form with spam protection.',
+    icon: 'mail',
+    version: 1,
     allowedChildren: [],
     defaultProps: {
+      ...defaultContactFormProps('simple'),
       headline: 'Get in Touch',
       subheadline: 'Leave your details and our team will get back to you shortly.',
-      fields: ['name', 'email', 'phone', 'message'],
       submitButtonText: 'Submit Inquiry',
-      successMessage: 'Thank you! We have received your message.',
     },
+    variants: ['default', ...CONTACT_FORM_VARIANTS],
     defaultStyles: {
       layout: { width: '100%' },
       spacing: { padding: { top: '24px', bottom: '24px', left: '24px', right: '24px' } },
@@ -1572,6 +1586,16 @@ export function getDefaultNode(type: NodeType, id?: string): WebsiteNode {
   return node;
 }
 
+export function getChildRules(type: NodeType): ChildRules {
+  const def = COMPONENT_REGISTRY[type];
+  if (def?.childRules) return def.childRules;
+  return {
+    min: 0,
+    max: def?.isLeaf ? 0 : undefined,
+    allowedTypes: def?.allowedChildren || [],
+  };
+}
+
 export function getComponentManifest() {
   return Object.values(COMPONENT_REGISTRY).map((def) => ({
     type: def.type,
@@ -1579,8 +1603,10 @@ export function getComponentManifest() {
     name: def.name,
     displayName: def.name,
     description: def.description,
+    icon: def.icon || def.type,
+    version: def.version ?? 1,
     allowedChildren: def.allowedChildren,
-    allowedParents: getAllowedParents(def.type),
+    allowedParents: def.allowedParents || getAllowedParents(def.type),
     defaultProps: def.defaultProps,
     defaultStyles: def.defaultStyles,
     capabilities: def.capabilities,
@@ -1588,6 +1614,8 @@ export function getComponentManifest() {
     variants: def.variants || [],
     states: def.states || [],
     editableFields: def.editableFields || [],
-    supportedResponsive: def.supportedResponsive || [],
+    childRules: getChildRules(def.type),
+    supportedResponsive: def.supportedResponsive || def.supportedResponsiveProperties || [],
+    supportedResponsiveProperties: def.supportedResponsiveProperties || def.supportedResponsive || [],
   }));
 }

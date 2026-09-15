@@ -74,10 +74,63 @@ export function expandThemeTypography(theme: Record<string, unknown>): Record<st
   return next;
 }
 
+export const DEFAULT_THEME_TOKENS = {
+  radius: {
+    none: '0px',
+    sm: '4px',
+    md: '8px',
+    lg: '16px',
+    full: '9999px',
+  },
+  shadow: {
+    none: 'none',
+    subtle: '0 4px 16px rgba(15,23,42,0.06)',
+    medium: '0 12px 32px rgba(15,23,42,0.10)',
+    dramatic: '0 24px 48px rgba(15,23,42,0.16)',
+  },
+  spacing: {
+    xs: '4px',
+    sm: '8px',
+    md: '16px',
+    lg: '24px',
+    xl: '40px',
+    '2xl': '64px',
+  },
+  button: {
+    radius: 'md',
+    paddingX: '20px',
+    paddingY: '12px',
+    fontWeight: 600,
+  },
+  card: {
+    radius: 'lg',
+    shadow: 'subtle',
+    padding: '24px',
+  },
+};
+
 export function coerceIncomingTheme(input: unknown): unknown {
   if (!input || typeof input !== 'object') return input;
   const theme = { ...(input as Record<string, unknown>) };
   theme.typography = expandThemeTypography(theme);
+
+  const typography = theme.typography as Record<string, { fontFamily?: string }>;
+  const headingFont = pickFont(theme.headingFont, typography?.h1?.fontFamily);
+  const bodyFont = pickFont(theme.bodyFont, typography?.body?.fontFamily, headingFont);
+  theme.headingFont = headingFont;
+  theme.bodyFont = bodyFont;
+
+  const existingTokens =
+    theme.tokens && typeof theme.tokens === 'object' ? (theme.tokens as Record<string, unknown>) : {};
+  theme.tokens = {
+    headingFont,
+    bodyFont,
+    radius: { ...DEFAULT_THEME_TOKENS.radius, ...((existingTokens.radius as object) || {}) },
+    shadow: { ...DEFAULT_THEME_TOKENS.shadow, ...((existingTokens.shadow as object) || {}) },
+    spacing: { ...DEFAULT_THEME_TOKENS.spacing, ...((existingTokens.spacing as object) || {}) },
+    button: { ...DEFAULT_THEME_TOKENS.button, ...((existingTokens.button as object) || {}) },
+    card: { ...DEFAULT_THEME_TOKENS.card, ...((existingTokens.card as object) || {}) },
+  };
 
   if (!theme.colors || typeof theme.colors !== 'object') {
     theme.colors = {

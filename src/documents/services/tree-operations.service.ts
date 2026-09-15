@@ -5,10 +5,10 @@ import {
   WebsiteNode,
   DocumentOperation,
   PageDocumentV3,
+  NavItem,
 } from '../types/document.types';
 import { isAllowedChild, isLeafNode, isValidComponentVariant } from '../contracts/component-registry';
-import { buildSectionPreset } from '../presets/section-presets';
-import { visualNodeToWebsiteNode } from './preset-to-v3';
+import { buildBlockTree, getBlockDefinition } from '../contracts/block-registry';
 import { coerceRichTextProps } from './rich-text';
 import { walkDocumentNodes, collectDocumentNodeIds } from './document-integrity';
 
@@ -149,6 +149,30 @@ export class TreeOperationsService {
         this.insertPreset(doc, op.pageId, op.parentId, op.presetId, op.index);
         break;
 
+      case 'insertBlock':
+        this.insertBlock(doc, op.pageId, op.parentId, op.blockId, op.index);
+        break;
+
+      case 'insertSection':
+        this.insertSection(doc, op.pageId, op.parentId, op.blockId, op.index);
+        break;
+
+      case 'replaceSubtree':
+        this.replaceSubtree(doc, op.pageId, op.nodeId, op.node);
+        break;
+
+      case 'renameNode':
+        this.renameNode(doc, op.pageId, op.nodeId, op.name);
+        break;
+
+      case 'hideNode':
+        this.hideNode(doc, op.pageId, op.nodeId, op.hidden);
+        break;
+
+      case 'setLocked':
+        this.setLocked(doc, op.pageId, op.nodeId, op.locked);
+        break;
+
       case 'upsertReusable':
         this.upsertReusable(doc, op.componentId, op.node);
         break;
@@ -217,6 +241,12 @@ export class TreeOperationsService {
       }
     }
     if (patch.seo !== undefined) page.seo = { ...page.seo, ...patch.seo };
+    if (patch.showInNavigation !== undefined) {
+      page.showInNavigation = patch.showInNavigation;
+      this.setPageNavVisibility(doc, pageId, patch.showInNavigation);
+    }
+    if (patch.kind !== undefined) page.kind = patch.kind;
+    if (patch.collection !== undefined) page.collection = patch.collection;
     doc.pages.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
@@ -229,6 +259,7 @@ export class TreeOperationsService {
       throw new NotFoundException(`Page with id "${pageId}" not found`);
     }
     doc.pages.splice(idx, 1);
+    this.prunePageFromNavigation(doc, pageId);
     if (!doc.pages.some((page) => page.isHomepage) && doc.pages[0]) {
       doc.pages[0].isHomepage = true;
     }
@@ -276,6 +307,8 @@ export class TreeOperationsService {
       throw new BadRequestException(`Node "${parent.type}" is a leaf and cannot accept children`);
     }
 
+    this.assertUnlocked(parent, 'receive children');
+
     if (!isAllowedChild(parent.type, node.type)) {
       throw new BadRequestException(
         `Node of type "${node.type}" is not allowed as a child of "${parent.type}"`,
@@ -307,6 +340,9 @@ export class TreeOperationsService {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
 
+    this.assertUnlocked(search.node, 'deleted');
+    this.assertUnlocked(search.parent, 'have children removed');
+
     search.parent.children.splice(search.index, 1);
   }
 
@@ -334,6 +370,8 @@ export class TreeOperationsService {
     if (!destParent) {
       throw new NotFoundException(`Target parent node "${destParentId}" not found`);
     }
+
+    this.assertUnlocked(destParent, 'receive children');
 
     if (!isAllowedChild(destParent.type, search.node.type)) {
       throw new BadRequestException(
@@ -392,6 +430,10 @@ export class TreeOperationsService {
       );
     }
 
+    this.assertUnlocked(search.node, 'moved');
+    this.assertUnlocked(search.parent, 'have children moved');
+    this.assertUnlocked(targetParent, 'receive children');
+
     // Circular reference prevention: targetParent cannot be the node itself or a descendant
     if (nodeId === targetParentId || this.isDescendant(search.node, targetParentId)) {
       throw new BadRequestException(
@@ -422,6 +464,11 @@ export class TreeOperationsService {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
 
+    const unlocking = patch.locked === false;
+    if (!unlocking) {
+      this.assertUnlocked(node, 'updated');
+    }
+
     if (patch.name !== undefined) node.name = patch.name;
     if (patch.props !== undefined) node.props = { ...node.props, ...patch.props };
     if (patch.styles !== undefined) node.styles = { ...node.styles, ...patch.styles };
@@ -450,6 +497,7 @@ export class TreeOperationsService {
     if (!node) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
+    this.assertUnlocked(node, 'updated');
     node.props = { ...node.props, ...props };
     if (
       typeof node.props.variant === 'string' &&
@@ -471,6 +519,8 @@ export class TreeOperationsService {
     if (!node) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
+
+    this.assertUnlocked(node, 'restyled');
 
     node.styles = {
       ...node.styles,
@@ -499,6 +549,7 @@ export class TreeOperationsService {
     if (!node) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
+    this.assertUnlocked(node, 'updated');
 
     node.responsive = {
       ...node.responsive,
@@ -517,6 +568,7 @@ export class TreeOperationsService {
     if (!node) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
+    this.assertUnlocked(node, 'updated');
 
     node.visibility = { ...node.visibility, ...visibility };
   }
@@ -550,6 +602,8 @@ export class TreeOperationsService {
     if (!parent) {
       throw new NotFoundException(`Parent node "${parentId}" not found`);
     }
+    this.assertUnlocked(parent, 'have children reordered');
+    this.assertUnlocked(parent, 'have children reordered');
 
     if (!parent.children || parent.children.length === 0) {
       return;
@@ -595,6 +649,11 @@ export class TreeOperationsService {
       sortOrder: doc.pages.length,
       enabled: source.enabled,
       isHomepage: false,
+      showInNavigation: source.showInNavigation,
+      kind: source.kind,
+      collection: source.collection
+        ? JSON.parse(JSON.stringify(source.collection))
+        : undefined,
       seo: source.seo ? JSON.parse(JSON.stringify(source.seo)) : undefined,
       root: clonedRoot,
     };
@@ -626,6 +685,7 @@ export class TreeOperationsService {
     if (!node) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
+    this.assertUnlocked(node, 'updated');
     if (!breakpoint) {
       delete node.responsive;
       return;
@@ -649,15 +709,100 @@ export class TreeOperationsService {
     presetId: string,
     index?: number,
   ): WebsiteNode {
-    let visual;
-    try {
-      visual = buildSectionPreset(presetId);
-    } catch {
-      throw new BadRequestException(`Unknown section preset "${presetId}"`);
+    return this.insertBlock(doc, pageId, parentId, presetId, index);
+  }
+
+  insertBlock(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    parentId: string,
+    blockId: string,
+    index?: number,
+  ): WebsiteNode {
+    const page = this.findPage(doc, pageId);
+    const parent = this.findNode(page.root, parentId);
+    if (!parent) {
+      throw new NotFoundException(`Parent node "${parentId}" not found in page "${pageId}"`);
     }
-    const node = visualNodeToWebsiteNode(visual);
+
+    const definition = getBlockDefinition(blockId);
+    if (definition && !definition.allowedParents.includes(parent.type)) {
+      throw new BadRequestException(
+        `Block "${blockId}" cannot be inserted into parent type "${parent.type}"`,
+      );
+    }
+
+    const node = buildBlockTree(blockId);
     this.addNode(doc, pageId, parentId, node, index);
     return node;
+  }
+
+  insertSection(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    parentId: string,
+    blockId: string,
+    index?: number,
+  ): WebsiteNode {
+    return this.insertBlock(doc, pageId, parentId, blockId, index);
+  }
+
+  replaceSubtree(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    nodeId: string,
+    node: WebsiteNode,
+  ): WebsiteNode {
+    const page = this.findPage(doc, pageId);
+    if (page.root.id === nodeId) {
+      throw new BadRequestException('Cannot replace the page root node');
+    }
+    const search = this.findNodeAndParent(page.root, nodeId);
+    if (!search || !search.parent || !search.parent.children) {
+      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
+    }
+    this.assertUnlocked(search.node, 'replaced');
+    this.assertUnlocked(search.parent, 'have children replaced');
+    if (!isAllowedChild(search.parent.type, node.type)) {
+      throw new BadRequestException(
+        `Node of type "${node.type}" is not allowed as a child of "${search.parent.type}"`,
+      );
+    }
+    const replacement = this.cloneSubtreeWithNewIds(node, { suffixName: false });
+    this.ensureSubtreeUniqueIds(doc, replacement, new Set([search.node.id]));
+    search.parent.children.splice(search.index, 1, replacement);
+    return replacement;
+  }
+
+  renameNode(doc: WebsiteDocumentV3, pageId: string, nodeId: string, name: string): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.findNode(page.root, nodeId);
+    if (!node) {
+      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
+    }
+    this.assertUnlocked(node, 'renamed');
+    node.name = name;
+  }
+
+  hideNode(doc: WebsiteDocumentV3, pageId: string, nodeId: string, hidden: boolean): void {
+    this.setVisibility(doc, pageId, nodeId, {
+      desktop: !hidden,
+      tablet: !hidden,
+      mobile: !hidden,
+    });
+  }
+
+  setLocked(doc: WebsiteDocumentV3, pageId: string, nodeId: string, locked: boolean): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.findNode(page.root, nodeId);
+    if (!node) {
+      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
+    }
+    if (locked) {
+      node.locked = true;
+    } else {
+      delete node.locked;
+    }
   }
 
   upsertReusable(doc: WebsiteDocumentV3, componentId: string, node: WebsiteNode): void {
@@ -804,6 +949,7 @@ export class TreeOperationsService {
           ? `${node.name} (Copy)`
           : node.name,
     };
+    delete cloned.locked;
 
     if (node.children && Array.isArray(node.children)) {
       cloned.children = node.children.map((child) =>
@@ -831,6 +977,38 @@ export class TreeOperationsService {
       }
     };
     remap(node);
+  }
+
+  private assertUnlocked(node: WebsiteNode, action: string): void {
+    if (node.locked) {
+      throw new BadRequestException(`Node "${node.id}" is locked and cannot be ${action}`);
+    }
+  }
+
+  private prunePageFromNavigation(doc: WebsiteDocumentV3, pageId: string): void {
+    const filterItems = (items: NavItem[] | undefined): NavItem[] => {
+      if (!items) return [];
+      return items
+        .filter((item) => item.pageId !== pageId)
+        .map((item) => ({
+          ...item,
+          children: item.children ? filterItems(item.children) : undefined,
+        }));
+    };
+    if (doc.navigation) {
+      doc.navigation.header = filterItems(doc.navigation.header);
+    }
+  }
+
+  private setPageNavVisibility(doc: WebsiteDocumentV3, pageId: string, visible: boolean): void {
+    const walk = (items: NavItem[] | undefined) => {
+      if (!items) return;
+      for (const item of items) {
+        if (item.pageId === pageId) item.visible = visible;
+        if (item.children) walk(item.children);
+      }
+    };
+    walk(doc.navigation?.header);
   }
 
   private assertVariant(type: WebsiteNode['type'], variant: string): void {

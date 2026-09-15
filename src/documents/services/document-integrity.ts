@@ -7,6 +7,7 @@ import {
   WebsiteNode,
 } from '../types/document.types';
 import { isValidComponentVariant } from '../contracts/component-registry';
+import { normalizeFormFields } from '../contracts/form-fields';
 import { isSafeUrl } from '../security/document-security';
 
 export function walkNodes(node: WebsiteNode, visit: (node: WebsiteNode) => void): void {
@@ -290,6 +291,56 @@ export function assertMediaReferences(doc: WebsiteDocumentV3): void {
   });
 }
 
+export function assertFormFields(doc: WebsiteDocumentV3): void {
+  walkDocumentNodes(doc, (node, scope) => {
+    if (node.type !== 'form' && node.type !== 'contact-form') return;
+    const action = node.props?.action;
+    if (action !== undefined && action !== 'leads' && typeof action !== 'string') {
+      throw new BadRequestException({
+        code: 'INVALID_FORM',
+        message: `Form "${node.id}" has an invalid action`,
+        errors: [{ path: `${scope}.${node.id}.props.action`, message: 'Form action must be leads' }],
+      });
+    }
+    if (typeof action === 'string' && action !== 'leads' && !isSafeUrl(action)) {
+      throw new BadRequestException({
+        code: 'INVALID_FORM',
+        message: `Form "${node.id}" has an unsafe action`,
+        errors: [{ path: `${scope}.${node.id}.props.action`, message: 'Unsafe form action' }],
+      });
+    }
+    try {
+      node.props = {
+        ...(node.props || {}),
+        fields: normalizeFormFields(node.props?.fields),
+        action: typeof action === 'string' && action ? action : 'leads',
+        submissionConfig: {
+          action: 'leads',
+          source:
+            (node.props?.submissionConfig as { source?: string } | undefined)?.source ||
+            'contact_form',
+        },
+      };
+    } catch (error: any) {
+      throw new BadRequestException({
+        code: 'INVALID_FORM',
+        message: `Form "${node.id}" has invalid fields: ${error.message}`,
+        errors: [{ path: `${scope}.${node.id}.props.fields`, message: error.message }],
+      });
+    }
+  });
+}
+
+export function collectDocumentFormFields(doc: WebsiteDocumentV3) {
+  const forms: ReturnType<typeof normalizeFormFields>[] = [];
+  walkDocumentNodes(doc, (node) => {
+    if (node.type === 'form' || node.type === 'contact-form') {
+      forms.push(normalizeFormFields(node.props?.fields));
+    }
+  });
+  return forms;
+}
+
 export function stripPrototypePollution(value: unknown): void {
   if (!value || typeof value !== 'object') return;
   if (Array.isArray(value)) {
@@ -308,4 +359,41 @@ export function stripPrototypePollution(value: unknown): void {
 
 export function isAllowedState(value: string): value is ComponentState {
   return (COMPONENT_STATES as readonly string[]).includes(value);
+}
+
+export function assertCmsBindings(doc: WebsiteDocumentV3): void {
+  for (const page of doc.pages || []) {
+    if (
+      (page.kind === 'collection-index' || page.kind === 'collection-item') &&
+      !page.collection?.slug
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_COLLECTION_PAGE',
+        message: `Page "${page.id}" is dynamic but has no collection slug`,
+        errors: [{ path: `pages.${page.id}.collection`, message: 'collection.slug is required' }],
+      });
+    }
+  }
+
+  walkDocumentNodes(doc, (node, scope) => {
+    const binding = node.binding;
+    if (!binding) return;
+    if (
+      (binding.source === 'collection' || binding.source === 'record') &&
+      !binding.collection
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_BINDING',
+        message: `Node "${node.id}" binding is missing a collection slug`,
+        errors: [{ path: `${scope}.${node.id}.binding.collection`, message: 'collection is required' }],
+      });
+    }
+    if (binding.fallback && !isSafeUrl(binding.fallback) && /javascript:|<script/i.test(binding.fallback)) {
+      throw new BadRequestException({
+        code: 'INVALID_BINDING',
+        message: `Node "${node.id}" binding fallback is unsafe`,
+        errors: [{ path: `${scope}.${node.id}.binding.fallback`, message: 'Unsafe fallback' }],
+      });
+    }
+  });
 }

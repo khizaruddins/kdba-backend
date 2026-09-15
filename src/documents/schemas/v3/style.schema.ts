@@ -313,6 +313,40 @@ export const ColorTokensV3Schema = z.object({
   custom: z.record(z.string(), safeColor).optional(),
 });
 
+export const ThemeComponentTokensSchema = z.object({
+  headingFont: safeCssValue.optional(),
+  bodyFont: safeCssValue.optional(),
+  radius: z.record(z.string().max(40), safeCssValue).optional(),
+  shadow: z
+    .record(
+      z.string().max(40),
+      z
+        .string()
+        .trim()
+        .max(200)
+        .refine((val) => !/javascript\s*:|expression\s*\(|url\s*\(|<script|@import/i.test(val), {
+          message: 'Unsafe CSS value rejected',
+        }),
+    )
+    .optional(),
+  spacing: z.record(z.string().max(40), safeCssValue).optional(),
+  button: z
+    .object({
+      radius: safeCssValue.optional(),
+      paddingX: cssLength.optional(),
+      paddingY: cssLength.optional(),
+      fontWeight: z.union([z.string(), z.number()]).optional(),
+    })
+    .optional(),
+  card: z
+    .object({
+      radius: safeCssValue.optional(),
+      shadow: safeCssValue.optional(),
+      padding: cssLength.optional(),
+    })
+    .optional(),
+});
+
 export const ThemeSystemV3ObjectSchema = z.object({
   colors: ColorTokensV3Schema,
   typography: TypographySystemV3Schema,
@@ -323,6 +357,9 @@ export const ThemeSystemV3ObjectSchema = z.object({
   }),
   borderRadius: z.enum(['none', 'sm', 'md', 'lg', 'full']).default('md'),
   shadows: z.enum(['none', 'subtle', 'medium', 'dramatic']).default('subtle'),
+  headingFont: safeCssValue.optional(),
+  bodyFont: safeCssValue.optional(),
+  tokens: ThemeComponentTokensSchema.optional(),
   customCss: z.string().max(50000).optional(),
 });
 

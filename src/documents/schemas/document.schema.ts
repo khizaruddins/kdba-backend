@@ -70,6 +70,20 @@ export const BusinessInfoSchema = z.object({
     )
     .optional()
     .default({}),
+  locations: z
+    .array(
+      z.object({
+        id: safeString(100).optional(),
+        name: safeString(200),
+        address: safeString(300).optional(),
+        city: safeString(100).optional(),
+        phone: safeString(50).optional(),
+        email: z.string().email().optional().or(z.literal('')),
+        hours: safeString(200).optional(),
+      }),
+    )
+    .max(50)
+    .optional(),
 });
 
 // ─── NAVIGATION SCHEMA ────────────────────────────────────────────────────────
@@ -83,19 +97,7 @@ export const NavItemSchema: z.ZodType<any> = z.lazy(() =>
     pageId: safeString(100).optional(),
     visible: z.boolean().optional(),
     target: z.enum(['_self', '_blank']).default('_self'),
-    children: z
-      .array(
-        z.object({
-          id: safeString(100),
-          label: safeString(100),
-          href: safeUrl,
-          kind: z.enum(['page', 'url', 'anchor']).optional(),
-          pageId: safeString(100).optional(),
-          visible: z.boolean().optional(),
-          target: z.enum(['_self', '_blank']).default('_self'),
-        }),
-      )
-      .optional(),
+    children: z.array(NavItemSchema).optional(),
   }),
 );
 

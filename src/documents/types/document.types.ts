@@ -357,6 +357,13 @@ export interface WebsiteNode {
   interactions?: InteractionDefinition[];
   animations?: AnimationDefinition;
   locked?: boolean;
+  binding?: {
+    source: 'collection' | 'record' | 'business';
+    collection?: string;
+    field?: string;
+    recordSlug?: string;
+    fallback?: string;
+  };
 }
 
 // ─── V3 THEME SYSTEM ──────────────────────────────────────────────────────────
@@ -398,12 +405,34 @@ export interface ColorTokensV3 {
   custom?: Record<string, string>;
 }
 
+export interface ThemeComponentTokens {
+  headingFont?: string;
+  bodyFont?: string;
+  radius?: Record<string, string>;
+  shadow?: Record<string, string>;
+  spacing?: Record<string, string>;
+  button?: {
+    radius?: string;
+    paddingX?: string;
+    paddingY?: string;
+    fontWeight?: string | number;
+  };
+  card?: {
+    radius?: string;
+    shadow?: string;
+    padding?: string;
+  };
+}
+
 export interface ThemeSystemV3 {
   colors: ColorTokensV3;
   typography: TypographySystemV3;
   breakpoints: BreakpointConfig;
   borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full';
   shadows: 'none' | 'subtle' | 'medium' | 'dramatic';
+  headingFont?: string;
+  bodyFont?: string;
+  tokens?: ThemeComponentTokens;
   customCss?: string;
 }
 
@@ -427,6 +456,13 @@ export interface PageSeo {
   canonicalUrl?: string;
 }
 
+export type PageKind = 'static' | 'collection-index' | 'collection-item';
+
+export interface PageCollectionRef {
+  slug: string;
+  itemParam?: 'slug';
+}
+
 export interface PageDocumentV3 {
   id: string;
   title: string;
@@ -435,6 +471,9 @@ export interface PageDocumentV3 {
   sortOrder: number;
   enabled: boolean;
   isHomepage?: boolean;
+  showInNavigation?: boolean;
+  kind?: PageKind;
+  collection?: PageCollectionRef;
   seo?: PageSeo;
   root: WebsiteNode; // Top-level node of type 'page-root' containing sections
 }
@@ -495,6 +534,15 @@ export interface BusinessInfo {
       closed?: boolean;
     }
   >;
+  locations?: Array<{
+    id?: string;
+    name: string;
+    address?: string;
+    city?: string;
+    phone?: string;
+    email?: string;
+    hours?: string;
+  }>;
 }
 
 export interface NavItem {
@@ -505,15 +553,7 @@ export interface NavItem {
   pageId?: string;
   visible?: boolean;
   target?: '_self' | '_blank';
-  children?: Array<{
-    id: string;
-    label: string;
-    href: string;
-    kind?: 'page' | 'url' | 'anchor';
-    pageId?: string;
-    visible?: boolean;
-    target?: '_self' | '_blank';
-  }>;
+  children?: NavItem[];
 }
 
 export interface FooterColumn {
@@ -585,6 +625,12 @@ export type DocumentOperationType =
   | 'pasteNode'
   | 'resetResponsive'
   | 'insertPreset'
+  | 'insertBlock'
+  | 'insertSection'
+  | 'replaceSubtree'
+  | 'renameNode'
+  | 'hideNode'
+  | 'setLocked'
   | 'upsertReusable'
   | 'insertReusable'
   | 'removeReusable'
@@ -720,6 +766,44 @@ export type DocumentOperation =
       parentId: string;
       presetId: string;
       index?: number;
+    }
+  | {
+      type: 'insertBlock';
+      pageId: string;
+      parentId: string;
+      blockId: string;
+      index?: number;
+    }
+  | {
+      type: 'insertSection';
+      pageId: string;
+      parentId: string;
+      blockId: string;
+      index?: number;
+    }
+  | {
+      type: 'replaceSubtree';
+      pageId: string;
+      nodeId: string;
+      node: WebsiteNode;
+    }
+  | {
+      type: 'renameNode';
+      pageId: string;
+      nodeId: string;
+      name: string;
+    }
+  | {
+      type: 'hideNode';
+      pageId: string;
+      nodeId: string;
+      hidden: boolean;
+    }
+  | {
+      type: 'setLocked';
+      pageId: string;
+      nodeId: string;
+      locked: boolean;
     }
   | {
       type: 'upsertReusable';
