@@ -40,6 +40,12 @@ export class ProductsController {
     return this.productsService.findAll(user.tenantId, activeOnly === 'true');
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Catalog totals, discounts, and category mix' })
+  async getStats(@CurrentUser() user: JwtPayload) {
+    return this.productsService.getStats(user.tenantId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a product by ID' })
   async findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

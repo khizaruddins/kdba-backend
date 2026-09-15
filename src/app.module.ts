@@ -16,6 +16,7 @@ import { MediaModule } from './media/media.module';
 import { ProductsModule } from './products/products.module';
 import { PricingModule } from './pricing/pricing.module';
 import { LeadsModule } from './leads/leads.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { PublishingModule } from './publishing/publishing.module';
 import { HealthModule } from './health/health.module';
 import { AdminModule } from './admin/admin.module';
@@ -65,6 +66,7 @@ import { AdminModule } from './admin/admin.module';
     ProductsModule,
     PricingModule,
     LeadsModule,
+    DashboardModule,
     PublishingModule,
     HealthModule,
   ],

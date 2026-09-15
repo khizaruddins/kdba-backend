@@ -4,7 +4,36 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateLeadDto, UpdateLeadDto, LeadStatusEnum } from './dto/lead.dto';
+import { CreateLeadDto, UpdateLeadDto } from './dto/lead.dto';
+import {
+  clampPeriodDays,
+  dateKeyUtc,
+  emptyDailySeries,
+  percentChange,
+  periodWindow,
+} from '../common/utils/metrics';
+
+const EMPTY_STATUS = {
+  total: 0,
+  new: 0,
+  contacted: 0,
+  qualified: 0,
+  converted: 0,
+  lost: 0,
+};
+
+function tallyStatuses(
+  leads: Array<{ status: string }>,
+): typeof EMPTY_STATUS {
+  const stats = { ...EMPTY_STATUS, total: leads.length };
+  for (const lead of leads) {
+    const statusKey = lead.status.toLowerCase() as keyof typeof stats;
+    if (statusKey !== 'total' && stats[statusKey] !== undefined) {
+      stats[statusKey] += 1;
+    }
+  }
+  return stats;
+}
 
 @Injectable()
 export class LeadsService {
@@ -46,29 +75,64 @@ export class LeadsService {
     });
   }
 
-  async getStats(tenantId: string) {
-    const leads = await this.prisma.lead.findMany({
-      where: { tenantId },
-      select: { status: true },
-    });
+  async getStats(tenantId: string, daysRaw?: string) {
+    const days = clampPeriodDays(daysRaw);
+    const { periodStart, periodEnd, previousStart } = periodWindow(days);
 
-    const stats = {
-      total: leads.length,
-      new: 0,
-      contacted: 0,
-      qualified: 0,
-      converted: 0,
-      lost: 0,
-    };
+    const [allLeads, periodLeads, previousLeads] = await Promise.all([
+      this.prisma.lead.findMany({
+        where: { tenantId },
+        select: { status: true, createdAt: true },
+      }),
+      this.prisma.lead.findMany({
+        where: {
+          tenantId,
+          createdAt: { gte: periodStart, lt: periodEnd },
+        },
+        select: { status: true, createdAt: true },
+      }),
+      this.prisma.lead.findMany({
+        where: {
+          tenantId,
+          createdAt: { gte: previousStart, lt: periodStart },
+        },
+        select: { status: true },
+      }),
+    ]);
 
-    for (const lead of leads) {
-      const statusKey = lead.status.toLowerCase() as keyof typeof stats;
-      if (stats[statusKey] !== undefined) {
-        stats[statusKey]++;
-      }
+    const all = tallyStatuses(allLeads);
+    const current = tallyStatuses(periodLeads);
+    const previous = tallyStatuses(previousLeads);
+
+    const buckets = new Map(
+      emptyDailySeries(periodStart, days).map((row) => [row.date, row]),
+    );
+    for (const lead of periodLeads) {
+      const key = dateKeyUtc(lead.createdAt);
+      const bucket = buckets.get(key);
+      if (!bucket) continue;
+      bucket.count += 1;
+      if (lead.status === 'CONVERTED') bucket.converted += 1;
     }
 
-    return stats;
+    return {
+      ...all,
+      period: {
+        days,
+        from: periodStart.toISOString(),
+        to: periodEnd.toISOString(),
+      },
+      periodCounts: current,
+      previousCounts: previous,
+      change: {
+        total: percentChange(current.total, previous.total),
+        new: percentChange(current.new, previous.new),
+        converted: percentChange(current.converted, previous.converted),
+      },
+      conversionRate:
+        all.total > 0 ? Math.round((all.converted / all.total) * 1000) / 10 : 0,
+      series: Array.from(buckets.values()),
+    };
   }
 
   async findOne(id: string, tenantId: string) {

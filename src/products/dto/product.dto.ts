@@ -4,9 +4,11 @@ import {
   IsOptional,
   IsString,
   IsNumber,
+  IsInt,
   IsBoolean,
   Min,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -45,6 +47,34 @@ export class CreateProductDto {
   @IsOptional()
   @MaxLength(100)
   category?: string;
+
+  @ApiPropertyOptional({ example: 'Acme' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  brand?: string;
+
+  @ApiPropertyOptional({ example: 'SKU-1001' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(80)
+  sku?: string;
+
+  @ApiPropertyOptional({ example: 349.99 })
+  @ValidateIf((_, value) => value !== null)
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  @IsOptional()
+  compareAtPrice?: number | null;
+
+  @ApiPropertyOptional({ example: 24, description: 'Leave empty to skip stock tracking' })
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Type(() => Number)
+  @Min(0)
+  @IsOptional()
+  stock?: number | null;
 
   @ApiPropertyOptional({ example: 'Buy Now' })
   @IsString()
@@ -105,6 +135,34 @@ export class UpdateProductDto {
   @IsOptional()
   @MaxLength(100)
   category?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  brand?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  @MaxLength(80)
+  sku?: string;
+
+  @ApiPropertyOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsNumber()
+  @Type(() => Number)
+  @Min(0)
+  @IsOptional()
+  compareAtPrice?: number | null;
+
+  @ApiPropertyOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsInt()
+  @Type(() => Number)
+  @Min(0)
+  @IsOptional()
+  stock?: number | null;
 
   @ApiPropertyOptional()
   @IsString()

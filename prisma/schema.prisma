@@ -340,24 +340,29 @@ model Media {
 // ─── PRODUCTS ─────────────────────────────────────────────────────────────────
 
 model Product {
-  id          String   @id @default(cuid())
-  tenantId    String
-  name        String
-  description String?
-  price       Decimal  @db.Decimal(10, 2)
-  currency    String   @default("USD")
-  imageUrl    String?
-  category    String?
-  ctaText     String?
-  ctaUrl      String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  description    String?
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  currency       String   @default("USD")
+  imageUrl       String?
+  category       String?
+  brand          String?
+  sku            String?
+  stock          Int?
+  ctaText        String?
+  ctaUrl         String?
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, isActive])
+  @@index([tenantId, category])
 }
 
 // ─── PRICING ──────────────────────────────────────────────────────────────────

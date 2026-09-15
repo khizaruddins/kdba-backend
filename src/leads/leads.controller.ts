@@ -36,9 +36,13 @@ export class LeadsController {
   }
 
   @Get('stats')
-  @ApiOperation({ summary: 'Get lead status counts/metrics' })
-  async getStats(@CurrentUser() user: JwtPayload) {
-    return this.leadsService.getStats(user.tenantId);
+  @ApiOperation({ summary: 'Get lead status counts, period comparison, and daily series' })
+  @ApiQuery({ name: 'days', required: false, type: Number })
+  async getStats(
+    @CurrentUser() user: JwtPayload,
+    @Query('days') days?: string,
+  ) {
+    return this.leadsService.getStats(user.tenantId, days);
   }
 
   @Get(':id')
