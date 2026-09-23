@@ -242,6 +242,10 @@ export interface StyleDefinition {
     size?: 'cover' | 'contain' | 'auto' | string;
     repeat?: 'no-repeat' | 'repeat' | 'repeat-x' | 'repeat-y';
     opacity?: number;
+    overlay?: {
+      color?: string;
+      opacity?: number;
+    };
   };
   border?: {
     top?: BorderSide;
@@ -292,7 +296,7 @@ export interface ResponsiveVisibility {
   [customBreakpoint: string]: boolean | undefined;
 }
 
-// ─── V3 INTERACTIONS & ANIMATIONS ──────────────────────────────────────────────
+// ─── V3 INTERACTIONS, STATES & ANIMATIONS ──────────────────────────────────────
 
 export interface InteractionDefinition {
   trigger: 'click' | 'hover' | 'scroll-into-view' | 'load';
@@ -301,12 +305,45 @@ export interface InteractionDefinition {
   payload?: Record<string, unknown>;
 }
 
+export type ComponentStateKey = 'hover' | 'active' | 'focus' | 'disabled';
+
+export interface ComponentStatesDefinition {
+  hover?: Partial<StyleDefinition>;
+  active?: Partial<StyleDefinition>;
+  focus?: Partial<StyleDefinition>;
+  disabled?: Partial<StyleDefinition>;
+}
+
+export type AnimationPreset =
+  | 'none'
+  | 'fade'
+  | 'fade-up'
+  | 'fade-down'
+  | 'fade-left'
+  | 'fade-right'
+  | 'scale'
+  | 'slide'
+  | 'blur-in';
+
+export type AnimationTrigger =
+  | 'on-load'
+  | 'on-scroll'
+  | 'on-hover'
+  | 'load'
+  | 'scroll'
+  | 'hover';
+
 export interface AnimationDefinition {
-  type: 'fade' | 'slide-up' | 'slide-down' | 'zoom' | 'bounce' | 'none';
+  preset?: AnimationPreset | string;
+  trigger?: AnimationTrigger | string;
   duration?: number; // ms
   delay?: number; // ms
   easing?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear' | string;
-  trigger?: 'load' | 'scroll' | 'hover';
+  direction?: 'up' | 'down' | 'left' | 'right' | 'none' | 'normal' | 'reverse' | 'alternate' | string;
+  distance?: number | string;
+  intensity?: 'subtle' | 'medium' | 'strong' | number;
+  type?: 'fade' | 'slide-up' | 'slide-down' | 'zoom' | 'bounce' | 'none' | string; // backward compat
+  repeat?: boolean | number;
 }
 
 // ─── V3 HIERARCHICAL NODE MODEL ───────────────────────────────────────────────
@@ -315,10 +352,12 @@ export interface WebsiteNode {
   id: string;
   type: NodeType;
   name?: string;
+  label?: string;
   children?: WebsiteNode[];
   props?: Record<string, unknown>;
   styles?: StyleDefinition;
   responsive?: ResponsiveStyleDefinition;
+  states?: ComponentStatesDefinition;
   visibility?: ResponsiveVisibility;
   interactions?: InteractionDefinition[];
   animations?: AnimationDefinition;
@@ -368,9 +407,9 @@ export interface ThemeSystemV3 {
   colors: ColorTokensV3;
   typography: TypographySystemV3;
   breakpoints: BreakpointConfig;
-  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full';
-  shadows: 'none' | 'subtle' | 'medium' | 'dramatic';
-  customCss?: string;
+  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full' | string;
+  shadows: 'none' | 'subtle' | 'medium' | 'dramatic' | string;
+  customCss?: string | null;
 }
 
 // ─── V3 PAGE DOCUMENT ─────────────────────────────────────────────────────────
@@ -386,11 +425,11 @@ export type PageType =
   | 'custom';
 
 export interface PageSeo {
-  title?: string;
-  description?: string;
-  ogImage?: string;
-  noIndex?: boolean;
-  canonicalUrl?: string;
+  title?: string | null;
+  description?: string | null;
+  ogImage?: string | null;
+  noIndex?: boolean | null;
+  canonicalUrl?: string | null;
 }
 
 export interface PageDocumentV3 {
@@ -413,53 +452,58 @@ export interface GlobalComponentsV3 {
 }
 
 export interface SiteSettingsV3 {
-  analyticsId?: string;
-  customDomain?: string;
-  subdomain?: string;
+  analyticsId?: string | null;
+  customDomain?: string | null;
+  subdomain?: string | null;
   enableContactForm: boolean;
-  enableLiveChat?: boolean;
+  enableLiveChat?: boolean | null;
   language: string;
   limits?: {
     maxNodes?: number;
     maxDepth?: number;
     maxRichTextChars?: number;
-  };
+  } | null;
 }
 
 // ─── SITE METADATA & BUSINESS ─────────────────────────────────────────────────
 
 export interface SiteMetadata {
-  id?: string;
+  id?: string | null;
   name: string;
   businessType: string;
   language: string;
-  favicon?: string;
+  favicon?: string | null;
 }
 
 export interface BusinessInfo {
   name: string;
-  legalName?: string;
-  tagline?: string;
-  description?: string;
-  category?: string;
-  logoUrl?: string;
-  email?: string;
-  phone?: string;
-  whatsapp?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  zipCode?: string;
-  socialMedia?: Record<string, string | undefined>;
-  businessHours?: Record<
-    string,
-    {
-      open: string;
-      close: string;
-      closed?: boolean;
-    }
-  >;
+  legalName?: string | null;
+  tagline?: string | null;
+  description?: string | null;
+  category?: string | null;
+  logoUrl?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  zipCode?: string | null;
+  socialMedia?: Record<string, string | undefined> | null;
+  businessHours?:
+    | Record<
+        string,
+        | {
+            open?: string | null;
+            close?: string | null;
+            closed?: boolean | null;
+          }
+        | string
+        | any
+      >
+    | Array<any>
+    | null;
 }
 
 export interface NavItem {
@@ -499,9 +543,9 @@ export interface NavigationConfig {
 export interface GlobalSeo {
   metaTitle: string;
   metaDescription: string;
-  ogImage?: string;
-  canonicalUrl?: string;
-  keywords?: string[];
+  ogImage?: string | null;
+  canonicalUrl?: string | null;
+  keywords?: string[] | null;
 }
 
 // ─── CANONICAL V3 WEBSITE DOCUMENT ────────────────────────────────────────────
@@ -529,6 +573,14 @@ export type DocumentOperationType =
   | 'updateProps'
   | 'updateStyles'
   | 'updateResponsive'
+  | 'updateState'
+  | 'updateAnimation'
+  | 'resetResponsive'
+  | 'setNodeLabel'
+  | 'setLock'
+  | 'pasteNode'
+  | 'changeLayout'
+  | 'replaceSection'
   | 'setVisibility'
   | 'changeParent'
   | 'reorderChildren'
@@ -594,6 +646,68 @@ export type DocumentOperation =
       responsive: Partial<ResponsiveStyleDefinition>;
     }
   | {
+      type: 'updateState';
+      pageId: string;
+      nodeId: string;
+      state: ComponentStateKey;
+      styles: Partial<StyleDefinition> | null;
+    }
+  | {
+      type: 'updateAnimation';
+      pageId: string;
+      nodeId: string;
+      animation: Partial<AnimationDefinition> | null;
+    }
+  | {
+      type: 'resetResponsive';
+      pageId: string;
+      nodeId: string;
+      breakpoint: 'tablet' | 'mobile' | string;
+      propertyPaths?: string[];
+    }
+  | {
+      type: 'setNodeLabel';
+      pageId: string;
+      nodeId: string;
+      label: string;
+    }
+  | {
+      type: 'setLock';
+      pageId: string;
+      nodeId: string;
+      locked: boolean;
+    }
+  | {
+      type: 'pasteNode';
+      pageId: string;
+      targetParentId: string;
+      node: WebsiteNode;
+      index?: number;
+    }
+  | {
+      type: 'changeLayout';
+      pageId: string;
+      nodeId: string;
+      layoutType: 'grid' | 'stack' | 'row' | 'column' | 'container' | string;
+      options?: {
+        columns?: number;
+        gap?: string;
+        direction?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
+        wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+        alignItems?: string;
+        justifyContent?: string;
+        preserveContent?: boolean;
+      };
+    }
+  | {
+      type: 'replaceSection';
+      pageId: string;
+      sectionId: string;
+      targetVariant: string;
+      targetSectionType?: SectionType;
+      preserveContent?: boolean;
+    }
+  | {
       type: 'setVisibility';
       pageId: string;
       nodeId: string;
@@ -624,6 +738,7 @@ export type DocumentOperation =
   | {
       type: 'removePage';
       pageId: string;
+      nodeId?: never;
     }
   | {
       type: 'reorderPages';
@@ -652,6 +767,7 @@ export type DocumentOperation =
 
 export interface DocumentOperationsPayload {
   baseRevision?: number;
+  batchName?: string;
   operations: DocumentOperation[];
 }
 
@@ -663,6 +779,7 @@ export interface DocumentOperationsResult {
   updatedAt: Date;
   document: WebsiteDocumentV3;
   operationsApplied: number;
+  batchName?: string;
 }
 
 // ─── V2 BACKWARD COMPATIBILITY TYPES ──────────────────────────────────────────
@@ -675,9 +792,9 @@ export interface ThemeConfig {
   textColor: string;
   headingFont: string;
   bodyFont: string;
-  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full';
-  shadows: 'none' | 'subtle' | 'medium' | 'dramatic';
-  customCss?: string;
+  borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full' | string;
+  shadows: 'none' | 'subtle' | 'medium' | 'dramatic' | string;
+  customCss?: string | null;
 }
 
 export interface SectionContract {
@@ -707,10 +824,10 @@ export interface PageContract {
 }
 
 export interface SiteSettings {
-  analyticsId?: string;
-  customDomain?: string;
+  analyticsId?: string | null;
+  customDomain?: string | null;
   enableContactForm: boolean;
-  enableLiveChat?: boolean;
+  enableLiveChat?: boolean | null;
   language?: string;
 }
 

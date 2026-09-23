@@ -81,6 +81,8 @@ export class DocumentValidatorService {
         message: err.message,
       }));
 
+      console.error('[DocumentValidatorService] V3 website document schema validation failed with issues:', JSON.stringify(formattedErrors, null, 2));
+
       throw new BadRequestException({
         message: 'V3 website document schema validation failed',
         errors: formattedErrors,

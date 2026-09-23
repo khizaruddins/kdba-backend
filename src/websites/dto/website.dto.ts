@@ -86,6 +86,11 @@ export class ApplyDocumentOperationsDto {
   @IsOptional()
   baseRevision?: number;
 
+  @ApiPropertyOptional({ description: 'Optional logical batch or transaction label (e.g. for undo/redo groups)', example: 'Update Hero Typography' })
+  @IsString()
+  @IsOptional()
+  batchName?: string;
+
   @ApiProperty({
     description: 'Array of typed visual document operations to apply transactionally',
     example: [

@@ -2,14 +2,21 @@ import { z } from 'zod';
 
 // ─── SAFE STRING & NUMBER HELPERS ─────────────────────────────────────────────
 
-const safeCssValue = z.string().trim().max(100);
+const safeCssValue = z.union([
+  z.string().trim().max(100),
+  z.number().transform((n) => `${n}px`),
+]);
+
 const safeColor = z
   .string()
   .trim()
   .max(100)
-  .regex(
-    /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$|^rgb|^hsl|^var\(--|^transparent$|^inherit$|^currentColor$/i,
-    'Invalid CSS color format',
+  .refine(
+    (val) =>
+      /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$|^rgba?\(|^hsla?\(|^var\(--|^transparent$|^inherit$|^currentColor$|^[a-zA-Z]+$/i.test(
+        val,
+      ),
+    { message: 'Invalid CSS color format' },
   );
 
 // ─── SPACING SCHEMA ───────────────────────────────────────────────────────────
@@ -180,6 +187,12 @@ export const StyleDefinitionSchema = z.object({
       size: safeCssValue.optional(),
       repeat: z.enum(['no-repeat', 'repeat', 'repeat-x', 'repeat-y']).optional(),
       opacity: z.number().min(0).max(1).optional(),
+      overlay: z
+        .object({
+          color: safeColor.optional(),
+          opacity: z.number().min(0).max(1).optional(),
+        })
+        .optional(),
     })
     .optional(),
 
@@ -287,7 +300,7 @@ export const ThemeSystemV3Schema = z.object({
     tablet: 768,
     mobile: 480,
   }),
-  borderRadius: z.enum(['none', 'sm', 'md', 'lg', 'full']).default('md'),
-  shadows: z.enum(['none', 'subtle', 'medium', 'dramatic']).default('subtle'),
-  customCss: z.string().max(50000).optional(),
+  borderRadius: z.enum(['none', 'sm', 'md', 'lg', 'full']).or(safeCssValue).default('md'),
+  shadows: z.enum(['none', 'subtle', 'medium', 'dramatic']).or(safeCssValue).default('subtle'),
+  customCss: z.string().max(50000).nullable().optional(),
 });

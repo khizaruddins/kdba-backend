@@ -7,6 +7,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { WebsitesService } from './websites.service';
@@ -124,6 +125,17 @@ export class WebsitesController {
   @ApiOperation({ summary: 'Get rendered preview representation of draft document' })
   async getPreview(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.websitesService.getPreview(id, user.tenantId);
+  }
+
+  @Get(':id/nodes/:nodeId/responsive')
+  @ApiOperation({ summary: 'Analyze responsive inheritance, override, and reset status for a specific node at a breakpoint' })
+  async getNodeResponsive(
+    @Param('id') id: string,
+    @Param('nodeId') nodeId: string,
+    @Query('breakpoint') breakpoint: 'tablet' | 'mobile' = 'mobile',
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.websitesService.getNodeResponsive(id, user.tenantId, nodeId, breakpoint);
   }
 
   @Post(':id/publish')

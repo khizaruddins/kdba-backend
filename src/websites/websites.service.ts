@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DocumentValidatorService } from '../documents/services/document-validator.service';
 import { DocumentMigrationService } from '../documents/services/document-migration.service';
 import { TreeOperationsService } from '../documents/services/tree-operations.service';
+import { ResponsiveResolverService } from '../documents/services/responsive-resolver.service';
 import { TemplatesService } from '../templates/templates.service';
 import {
   CreateWebsiteDto,
@@ -31,6 +32,7 @@ import { DocumentOperationsPayloadSchema } from '../documents/schemas/v3/documen
 @Injectable()
 export class WebsitesService {
   private readonly logger = new Logger(WebsitesService.name);
+  private readonly responsiveResolver: ResponsiveResolverService;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -38,7 +40,10 @@ export class WebsitesService {
     private readonly migrationService: DocumentMigrationService,
     private readonly treeOperations: TreeOperationsService,
     private readonly templatesService: TemplatesService,
-  ) {}
+    responsiveResolver?: ResponsiveResolverService,
+  ) {
+    this.responsiveResolver = responsiveResolver || new ResponsiveResolverService();
+  }
 
   /**
    * Create a new website from a template.
@@ -251,6 +256,7 @@ export class WebsitesService {
       updatedAt: updated.updatedAt,
       document: validatedDoc,
       operationsApplied: dto.operations.length,
+      batchName: dto.batchName,
     };
   }
 
@@ -689,6 +695,31 @@ export class WebsitesService {
     return this.prisma.website.delete({
       where: { id },
     });
+  }
+
+  /**
+   * Get responsive inheritance/override analysis for a specific node at a given breakpoint.
+   */
+  async getNodeResponsive(
+    websiteId: string,
+    tenantId: string,
+    nodeId: string,
+    breakpoint: 'tablet' | 'mobile' = 'mobile',
+  ) {
+    const docResponse = await this.getDocument(websiteId, tenantId);
+    const doc = docResponse.document as WebsiteDocumentV3;
+
+    let targetNode = null;
+    for (const page of doc.pages) {
+      targetNode = this.treeOperations.findNode(page.root, nodeId);
+      if (targetNode) break;
+    }
+
+    if (!targetNode) {
+      throw new NotFoundException(`Node "${nodeId}" not found in website "${websiteId}"`);
+    }
+
+    return this.responsiveResolver.analyzeNodeResponsive(targetNode, breakpoint);
   }
 
   private async ensureUniqueSlug(tenantId: string, slug: string): Promise<string> {
