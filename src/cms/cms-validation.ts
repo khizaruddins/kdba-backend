@@ -38,7 +38,7 @@ export const CollectionFieldSchema = z
   })
   .strict();
 
-export const CollectionSettingsSchema: z.ZodType<CollectionSettings> = z
+export const CollectionSettingsSchema: z.ZodType<CollectionSettings, z.ZodTypeDef, any> = z
   .object({
     hasSlug: z.boolean().default(true),
     defaultStatus: z.enum(CMS_RECORD_STATUSES).default('DRAFT'),

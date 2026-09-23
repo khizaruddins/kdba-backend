@@ -8,6 +8,76 @@ import {
 import * as crypto from 'crypto';
 import { CONTACT_FORM_VARIANTS, defaultContactFormProps } from './form-fields';
 
+export interface GranularCapabilities {
+  supportedStyleCategories: Array<
+    'typography' | 'appearance' | 'size' | 'spacing' | 'layout' | 'flex' | 'grid' | 'border' | 'background' | 'effects' | 'transform'
+  >;
+  typography?: {
+    fontFamily?: boolean;
+    fontSize?: boolean;
+    fontWeight?: boolean;
+    lineHeight?: boolean;
+    letterSpacing?: boolean;
+    textAlign?: boolean;
+    textTransform?: boolean;
+    textDecoration?: boolean;
+    color?: boolean;
+  };
+  spacing?: {
+    margin?: boolean;
+    padding?: boolean;
+    gap?: boolean;
+  };
+  size?: {
+    width?: boolean;
+    height?: boolean;
+    minWidth?: boolean;
+    maxWidth?: boolean;
+    minHeight?: boolean;
+    maxHeight?: boolean;
+    aspectRatio?: boolean;
+  };
+  layout?: {
+    display?: boolean;
+    flex?: boolean;
+    grid?: boolean;
+    position?: boolean;
+    overflow?: boolean;
+    zIndex?: boolean;
+  };
+  appearance?: {
+    color?: boolean;
+    background?: boolean;
+    backgroundImage?: boolean;
+    backgroundOverlay?: boolean;
+    border?: boolean;
+    radius?: boolean;
+    shadow?: boolean;
+    opacity?: boolean;
+  };
+  content?: {
+    text?: boolean;
+    richText?: boolean;
+    link?: boolean;
+    source?: boolean;
+    alt?: boolean;
+    mediaId?: boolean;
+    level?: boolean;
+    variant?: boolean;
+    size?: boolean;
+    aspectRatio?: boolean;
+    objectFit?: boolean;
+    objectPosition?: boolean;
+    crop?: boolean;
+    focalPoint?: boolean;
+  };
+  states?: Array<'hover' | 'active' | 'focus' | 'disabled'>;
+  responsive?: boolean;
+  animation?: boolean;
+  visibility?: boolean;
+  locking?: boolean;
+}
+
 export interface ComponentCapabilities {
   canHaveChildren: boolean;
   canDropInto: boolean;
@@ -18,6 +88,7 @@ export interface ComponentCapabilities {
   supportsResponsive: boolean;
   supportsInteractions: boolean;
   supportsAnimations: boolean;
+  granular?: GranularCapabilities;
 }
 
 export interface EditableFieldDefinition {
@@ -1523,6 +1594,297 @@ for (const parent of SECTION_PARENTS) {
   }
 }
 
+export function getGranularCapabilitiesForNode(type: NodeType): GranularCapabilities {
+  switch (type) {
+    case 'heading':
+      return {
+        supportedStyleCategories: ['typography', 'appearance', 'spacing'],
+        typography: {
+          fontFamily: true,
+          fontSize: true,
+          fontWeight: true,
+          lineHeight: true,
+          letterSpacing: true,
+          textAlign: true,
+          textTransform: true,
+          textDecoration: true,
+          color: true,
+        },
+        appearance: { color: true, opacity: true },
+        spacing: { margin: true, padding: false },
+        content: { text: true, level: true },
+        states: ['hover'],
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'paragraph':
+    case 'text':
+      return {
+        supportedStyleCategories: ['typography', 'appearance', 'spacing'],
+        typography: {
+          fontFamily: true,
+          fontSize: true,
+          fontWeight: true,
+          lineHeight: true,
+          letterSpacing: true,
+          textAlign: true,
+          textTransform: true,
+          textDecoration: true,
+          color: true,
+        },
+        appearance: { color: true, opacity: true },
+        spacing: { margin: true, padding: true },
+        content: { text: true },
+        states: ['hover'],
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'rich-text':
+      return {
+        supportedStyleCategories: ['typography', 'appearance', 'spacing'],
+        typography: {
+          fontFamily: true,
+          fontSize: true,
+          lineHeight: true,
+          color: true,
+        },
+        appearance: { color: true, opacity: true },
+        spacing: { margin: true, padding: true },
+        content: { richText: true },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'button':
+      return {
+        supportedStyleCategories: [
+          'typography',
+          'appearance',
+          'size',
+          'spacing',
+          'border',
+          'effects',
+        ],
+        typography: {
+          fontFamily: true,
+          fontSize: true,
+          fontWeight: true,
+          lineHeight: true,
+          letterSpacing: true,
+          color: true,
+        },
+        appearance: {
+          color: true,
+          background: true,
+          border: true,
+          radius: true,
+          shadow: true,
+          opacity: true,
+        },
+        size: { width: true, height: true, minWidth: true, maxWidth: true },
+        spacing: { margin: true, padding: true },
+        content: { text: true, link: true, variant: true, size: true },
+        states: ['hover', 'active', 'focus', 'disabled'],
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'link':
+      return {
+        supportedStyleCategories: ['typography', 'appearance', 'spacing'],
+        typography: {
+          fontFamily: true,
+          fontSize: true,
+          fontWeight: true,
+          textDecoration: true,
+          color: true,
+        },
+        appearance: { color: true, opacity: true },
+        spacing: { margin: true, padding: true },
+        content: { text: true, link: true },
+        states: ['hover', 'focus'],
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'image':
+      return {
+        supportedStyleCategories: [
+          'size',
+          'appearance',
+          'border',
+          'effects',
+          'spacing',
+        ],
+        size: {
+          width: true,
+          height: true,
+          minWidth: true,
+          maxWidth: true,
+          minHeight: true,
+          maxHeight: true,
+          aspectRatio: true,
+        },
+        appearance: {
+          border: true,
+          radius: true,
+          shadow: true,
+          opacity: true,
+        },
+        spacing: { margin: true, padding: false },
+        content: {
+          source: true,
+          alt: true,
+          mediaId: true,
+          link: true,
+          aspectRatio: true,
+          objectFit: true,
+          objectPosition: true,
+          crop: true,
+          focalPoint: true,
+        },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'section':
+      return {
+        supportedStyleCategories: [
+          'layout',
+          'size',
+          'spacing',
+          'background',
+          'border',
+          'effects',
+        ],
+        layout: { display: true, position: true, overflow: true },
+        size: { width: true, height: true, minHeight: true, maxHeight: true, maxWidth: true },
+        spacing: { margin: true, padding: true },
+        appearance: {
+          background: true,
+          backgroundImage: true,
+          backgroundOverlay: true,
+          border: true,
+          radius: true,
+          shadow: true,
+          opacity: true,
+        },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'container':
+      return {
+        supportedStyleCategories: [
+          'layout',
+          'flex',
+          'grid',
+          'size',
+          'spacing',
+          'background',
+          'border',
+          'effects',
+        ],
+        layout: { display: true, position: true, overflow: true, zIndex: true },
+        size: {
+          width: true,
+          height: true,
+          minWidth: true,
+          maxWidth: true,
+          minHeight: true,
+          maxHeight: true,
+        },
+        spacing: { margin: true, padding: true, gap: true },
+        appearance: {
+          background: true,
+          border: true,
+          radius: true,
+          shadow: true,
+          opacity: true,
+        },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'grid':
+      return {
+        supportedStyleCategories: ['layout', 'grid', 'size', 'spacing', 'appearance'],
+        layout: { display: true, grid: true },
+        size: { width: true, height: true, maxWidth: true },
+        spacing: { margin: true, padding: true, gap: true },
+        appearance: { background: true, border: true, radius: true, shadow: true },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'stack':
+      return {
+        supportedStyleCategories: ['layout', 'flex', 'size', 'spacing', 'appearance'],
+        layout: { display: true, flex: true },
+        size: { width: true, height: true, maxWidth: true },
+        spacing: { margin: true, padding: true, gap: true },
+        appearance: { background: true, border: true, radius: true, shadow: true },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    case 'row':
+    case 'column':
+      return {
+        supportedStyleCategories: ['layout', 'flex', 'size', 'spacing', 'appearance'],
+        layout: { display: true, flex: true },
+        size: { width: true, height: true },
+        spacing: { margin: true, padding: true, gap: true },
+        appearance: { background: true, border: true, radius: true, shadow: true },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+
+    default:
+      return {
+        supportedStyleCategories: ['appearance', 'spacing', 'size'],
+        appearance: {
+          color: true,
+          background: true,
+          border: true,
+          radius: true,
+          shadow: true,
+          opacity: true,
+        },
+        spacing: { margin: true, padding: true },
+        size: { width: true, height: true },
+        responsive: true,
+        animation: true,
+        visibility: true,
+        locking: true,
+      };
+  }
+}
+
 export function isValidNodeType(type: string): type is NodeType {
   return ALL_NODE_TYPES.includes(type as NodeType);
 }
@@ -1557,6 +1919,17 @@ export function isValidComponentState(type: NodeType, state: ComponentState): bo
   const def = COMPONENT_REGISTRY[type];
   if (!def?.states?.length) return false;
   return def.states.includes(state);
+}
+
+export function getNodeCapabilities(type: NodeType): ComponentCapabilities {
+  const def = COMPONENT_REGISTRY[type];
+  if (!def) {
+    throw new Error(`Unknown node type: ${type}`);
+  }
+  return {
+    ...def.capabilities,
+    granular: def.capabilities.granular || getGranularCapabilitiesForNode(type),
+  };
 }
 
 export function getDefaultNode(type: NodeType, id?: string): WebsiteNode {
@@ -1609,7 +1982,10 @@ export function getComponentManifest() {
     allowedParents: def.allowedParents || getAllowedParents(def.type),
     defaultProps: def.defaultProps,
     defaultStyles: def.defaultStyles,
-    capabilities: def.capabilities,
+    capabilities: {
+      ...def.capabilities,
+      granular: def.capabilities.granular || getGranularCapabilitiesForNode(def.type),
+    },
     isLeaf: def.isLeaf,
     variants: def.variants || [],
     states: def.states || [],

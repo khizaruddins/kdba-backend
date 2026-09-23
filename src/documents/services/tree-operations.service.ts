@@ -6,11 +6,16 @@ import {
   DocumentOperation,
   PageDocumentV3,
   NavItem,
+  ComponentStateKey,
+  AnimationDefinition,
+  SectionType,
+  StyleDefinition,
 } from '../types/document.types';
 import { isAllowedChild, isLeafNode, isValidComponentVariant } from '../contracts/component-registry';
 import { buildBlockTree, getBlockDefinition } from '../contracts/block-registry';
 import { coerceRichTextProps } from './rich-text';
 import { walkDocumentNodes, collectDocumentNodeIds } from './document-integrity';
+import { createSectionVariantStructure } from '../contracts/section-registry';
 
 export interface NodeSearchResult {
   node: WebsiteNode;
@@ -85,6 +90,50 @@ export class TreeOperationsService {
         this.updateResponsive(doc, op.pageId, op.nodeId, op.responsive);
         break;
 
+      case 'updateState':
+        this.updateState(doc, op.pageId, op.nodeId, op.state, op.styles);
+        break;
+
+      case 'updateAnimation':
+        this.updateAnimation(doc, op.pageId, op.nodeId, op.animation);
+        break;
+
+      case 'resetResponsive':
+        this.resetResponsive(doc, op.pageId, op.nodeId, op.breakpoint, op.propertyPaths);
+        break;
+
+      case 'setNodeLabel':
+        this.setNodeLabel(doc, op.pageId, op.nodeId, op.label);
+        break;
+
+      case 'setLock':
+        this.setLock(doc, op.pageId, op.nodeId, op.locked);
+        break;
+
+      case 'pasteNode': {
+        const destParentId = op.targetParentId || op.parentId;
+        if (!destParentId) {
+          throw new BadRequestException('targetParentId or parentId is required for pasteNode');
+        }
+        this.pasteNode(doc, op.pageId, destParentId, op.node, op.index);
+        break;
+      }
+
+      case 'changeLayout':
+        this.changeLayout(doc, op.pageId, op.nodeId, op.layoutType, op.options);
+        break;
+
+      case 'replaceSection':
+        this.replaceSection(
+          doc,
+          op.pageId,
+          op.sectionId,
+          op.targetVariant,
+          op.targetSectionType,
+          op.preserveContent,
+        );
+        break;
+
       case 'setVisibility':
         this.setVisibility(doc, op.pageId, op.nodeId, op.visibility);
         break;
@@ -135,14 +184,6 @@ export class TreeOperationsService {
 
       case 'duplicatePage':
         this.duplicatePage(doc, op.pageId);
-        break;
-
-      case 'pasteNode':
-        this.pasteNode(doc, op.pageId, op.parentId, op.node, op.index);
-        break;
-
-      case 'resetResponsive':
-        this.resetResponsive(doc, op.pageId, op.nodeId, op.breakpoint);
         break;
 
       case 'insertPreset':
@@ -297,11 +338,7 @@ export class TreeOperationsService {
     index?: number,
   ): void {
     const page = this.findPage(doc, pageId);
-    const parent = this.findNode(page.root, parentId);
-
-    if (!parent) {
-      throw new NotFoundException(`Parent node "${parentId}" not found in page "${pageId}"`);
-    }
+    const parent = this.ensureNodeUnlocked(page, parentId);
 
     if (isLeafNode(parent.type)) {
       throw new BadRequestException(`Node "${parent.type}" is a leaf and cannot accept children`);
@@ -335,6 +372,8 @@ export class TreeOperationsService {
       throw new BadRequestException('Cannot delete the root node of a page');
     }
 
+    this.ensureNodeUnlocked(page, nodeId);
+
     const search = this.findNodeAndParent(page.root, nodeId);
     if (!search || !search.parent || !search.parent.children) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
@@ -354,8 +393,9 @@ export class TreeOperationsService {
     index?: number,
   ): WebsiteNode {
     const page = this.findPage(doc, pageId);
-    const search = this.findNodeAndParent(page.root, nodeId);
+    this.ensureNodeUnlocked(page, nodeId);
 
+    const search = this.findNodeAndParent(page.root, nodeId);
     if (!search) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
     }
@@ -365,11 +405,7 @@ export class TreeOperationsService {
     }
 
     const destParentId = targetParentId || (search.parent ? search.parent.id : page.root.id);
-    const destParent = this.findNode(page.root, destParentId);
-
-    if (!destParent) {
-      throw new NotFoundException(`Target parent node "${destParentId}" not found`);
-    }
+    const destParent = this.ensureNodeUnlocked(page, destParentId);
 
     this.assertUnlocked(destParent, 'receive children');
 
@@ -410,14 +446,12 @@ export class TreeOperationsService {
       throw new BadRequestException('Cannot move the page root node');
     }
 
+    this.ensureNodeUnlocked(page, nodeId);
+    const targetParent = this.ensureNodeUnlocked(page, targetParentId);
+
     const search = this.findNodeAndParent(page.root, nodeId);
     if (!search || !search.parent || !search.parent.children) {
       throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
-
-    const targetParent = this.findNode(page.root, targetParentId);
-    if (!targetParent) {
-      throw new NotFoundException(`Target parent node "${targetParentId}" not found`);
     }
 
     if (isLeafNode(targetParent.type)) {
@@ -459,10 +493,7 @@ export class TreeOperationsService {
     patch: Partial<WebsiteNode>,
   ): void {
     const page = this.findPage(doc, pageId);
-    const node = this.findNode(page.root, nodeId);
-    if (!node) {
-      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
+    const node = this.ensureNodeUnlocked(page, nodeId);
 
     const unlocking = patch.locked === false;
     if (!unlocking) {
@@ -473,6 +504,7 @@ export class TreeOperationsService {
     if (patch.props !== undefined) node.props = { ...node.props, ...patch.props };
     if (patch.styles !== undefined) node.styles = { ...node.styles, ...patch.styles };
     if (patch.responsive !== undefined) node.responsive = { ...node.responsive, ...patch.responsive };
+    if (patch.states !== undefined) node.states = { ...node.states, ...patch.states };
     if (patch.visibility !== undefined) node.visibility = { ...node.visibility, ...patch.visibility };
     if (patch.interactions !== undefined) node.interactions = patch.interactions;
     if (patch.animations !== undefined) node.animations = patch.animations;
@@ -493,11 +525,7 @@ export class TreeOperationsService {
     props: Record<string, unknown>,
   ): void {
     const page = this.findPage(doc, pageId);
-    const node = this.findNode(page.root, nodeId);
-    if (!node) {
-      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
-    this.assertUnlocked(node, 'updated');
+    const node = this.ensureNodeUnlocked(page, nodeId);
     node.props = { ...node.props, ...props };
     if (
       typeof node.props.variant === 'string' &&
@@ -515,10 +543,7 @@ export class TreeOperationsService {
     styles: Partial<WebsiteNode['styles']>,
   ): void {
     const page = this.findPage(doc, pageId);
-    const node = this.findNode(page.root, nodeId);
-    if (!node) {
-      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
+    const node = this.ensureNodeUnlocked(page, nodeId);
 
     this.assertUnlocked(node, 'restyled');
 
@@ -545,16 +570,435 @@ export class TreeOperationsService {
     responsive: Partial<WebsiteNode['responsive']>,
   ): void {
     const page = this.findPage(doc, pageId);
-    const node = this.findNode(page.root, nodeId);
-    if (!node) {
-      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
-    this.assertUnlocked(node, 'updated');
+    const node = this.ensureNodeUnlocked(page, nodeId);
 
     node.responsive = {
       ...node.responsive,
       ...responsive,
     };
+  }
+
+  updateState(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    nodeId: string,
+    state: ComponentStateKey,
+    styles: Partial<StyleDefinition> | null,
+  ): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.ensureNodeUnlocked(page, nodeId);
+
+    if (!node.states) {
+      node.states = {};
+    }
+
+    if (styles === null || styles === undefined) {
+      delete node.states[state];
+      if (Object.keys(node.states).length === 0) {
+        delete node.states;
+      }
+      return;
+    }
+
+    const currentState = node.states[state] || {};
+    node.states[state] = {
+      ...currentState,
+      ...styles,
+      layout: { ...currentState.layout, ...styles.layout },
+      flex: { ...currentState.flex, ...styles.flex },
+      grid: { ...currentState.grid, ...styles.grid },
+      size: { ...currentState.size, ...styles.size },
+      spacing: { ...currentState.spacing, ...styles.spacing },
+      typography: { ...currentState.typography, ...styles.typography },
+      background: { ...currentState.background, ...styles.background },
+      border: { ...currentState.border, ...styles.border },
+      effects: { ...currentState.effects, ...styles.effects },
+      transform: { ...currentState.transform, ...styles.transform },
+    };
+  }
+
+  updateAnimation(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    nodeId: string,
+    animation: Partial<AnimationDefinition> | null,
+  ): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.ensureNodeUnlocked(page, nodeId);
+
+    if (
+      animation === null ||
+      animation === undefined ||
+      animation.preset === 'none' ||
+      animation.type === 'none'
+    ) {
+      delete node.animations;
+      return;
+    }
+
+    node.animations = {
+      ...node.animations,
+      ...animation,
+    };
+  }
+
+  resetResponsive(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    nodeId: string,
+    breakpoint?: string,
+    propertyPaths?: string[],
+  ): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.ensureNodeUnlocked(page, nodeId);
+
+    if (!node.responsive) {
+      return;
+    }
+
+    if (!breakpoint) {
+      delete node.responsive;
+      return;
+    }
+
+    const bpStyles =
+      breakpoint === 'tablet'
+        ? node.responsive.tablet
+        : breakpoint === 'mobile'
+          ? node.responsive.mobile
+          : node.responsive.custom?.[breakpoint];
+
+    if (!bpStyles) {
+      return;
+    }
+
+    if (!propertyPaths || propertyPaths.length === 0) {
+      // Clear entire breakpoint override
+      if (breakpoint === 'tablet') {
+        delete node.responsive.tablet;
+      } else if (breakpoint === 'mobile') {
+        delete node.responsive.mobile;
+      } else if (node.responsive.custom) {
+        delete node.responsive.custom[breakpoint];
+      }
+      return;
+    }
+
+    // Reset specific property paths e.g. "typography.fontSize", "size.width"
+    for (const path of propertyPaths) {
+      const parts = path.split('.');
+      let current: any = bpStyles;
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current) break;
+        current = current[parts[i]];
+      }
+      if (current && parts.length > 0) {
+        delete current[parts[parts.length - 1]];
+      }
+    }
+  }
+
+  setNodeLabel(doc: WebsiteDocumentV3, pageId: string, nodeId: string, label: string): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.ensureNodeUnlocked(page, nodeId);
+    node.name = label.trim();
+  }
+
+  setLock(doc: WebsiteDocumentV3, pageId: string, nodeId: string, locked: boolean): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.findNode(page.root, nodeId);
+    if (!node) {
+      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
+    }
+    node.locked = locked;
+  }
+
+  pasteNode(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    targetParentId: string,
+    node: WebsiteNode,
+    index?: number,
+  ): WebsiteNode {
+    const page = this.findPage(doc, pageId);
+    const targetParent = this.ensureNodeUnlocked(page, targetParentId);
+
+    if (isLeafNode(targetParent.type)) {
+      throw new BadRequestException(`Target parent "${targetParent.type}" cannot accept children`);
+    }
+
+    if (!isAllowedChild(targetParent.type, node.type)) {
+      throw new BadRequestException(
+        `Node of type "${node.type}" is not allowed inside parent "${targetParent.type}"`,
+      );
+    }
+
+    // Clone subtree with brand new IDs, preserving all styles, responsive, states, animations, props
+    const cloned = this.cloneSubtreeWithNewIds(node);
+
+    if (!targetParent.children) {
+      targetParent.children = [];
+    }
+
+    const safeIndex =
+      typeof index === 'number' && index >= 0 && index <= targetParent.children.length
+        ? index
+        : targetParent.children.length;
+
+    targetParent.children.splice(safeIndex, 0, cloned);
+    return cloned;
+  }
+
+  changeLayout(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    nodeId: string,
+    layoutType: string,
+    options?: {
+      columns?: number;
+      gap?: string;
+      direction?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
+      wrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
+      alignItems?: string;
+      justifyContent?: string;
+      preserveContent?: boolean;
+    },
+  ): void {
+    const page = this.findPage(doc, pageId);
+    const node = this.ensureNodeUnlocked(page, nodeId);
+
+    if (isLeafNode(node.type)) {
+      throw new BadRequestException(`Cannot change layout on leaf node "${node.type}"`);
+    }
+
+    if (!node.styles) {
+      node.styles = {};
+    }
+
+    switch (layoutType) {
+      case 'grid': {
+        const columns = options?.columns || 3;
+        const gap = options?.gap || '24px';
+        node.styles.layout = { ...node.styles.layout, display: 'grid' };
+        node.styles.grid = {
+          ...node.styles.grid,
+          columns,
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          columnGap: gap,
+          rowGap: gap,
+        };
+        if (node.type === 'stack' || node.type === 'row') {
+          node.type = 'grid';
+        }
+        break;
+      }
+
+      case 'stack': {
+        const direction = options?.direction || 'column';
+        const gap = options?.gap || '16px';
+        node.styles.layout = { ...node.styles.layout, display: 'flex' };
+        node.styles.flex = {
+          ...node.styles.flex,
+          direction,
+          gap,
+          alignItems: (options?.alignItems as any) || (direction === 'column' ? 'flex-start' : 'center'),
+          justifyContent: (options?.justifyContent as any) || 'flex-start',
+          wrap: options?.wrap || (direction === 'row' ? 'wrap' : 'nowrap'),
+        };
+        if (node.type === 'grid' || node.type === 'row') {
+          node.type = 'stack';
+        }
+        break;
+      }
+
+      case 'row': {
+        const gap = options?.gap || '24px';
+        node.styles.layout = { ...node.styles.layout, display: 'flex' };
+        node.styles.flex = {
+          ...node.styles.flex,
+          direction: 'row',
+          gap,
+          wrap: options?.wrap || 'wrap',
+          alignItems: (options?.alignItems as any) || 'center',
+          justifyContent: (options?.justifyContent as any) || 'flex-start',
+        };
+        if (node.type === 'grid' || node.type === 'stack') {
+          node.type = 'row';
+        }
+        break;
+      }
+
+      case 'column': {
+        const gap = options?.gap || '16px';
+        node.styles.layout = { ...node.styles.layout, display: 'flex' };
+        node.styles.flex = {
+          ...node.styles.flex,
+          direction: 'column',
+          gap,
+          alignItems: (options?.alignItems as any) || 'stretch',
+        };
+        if (node.type === 'grid' || node.type === 'row') {
+          node.type = 'column';
+        }
+        break;
+      }
+
+      default: {
+        if (['flex', 'grid', 'block'].includes(layoutType)) {
+          node.styles.layout = { ...node.styles.layout, display: layoutType as any };
+        }
+      }
+    }
+  }
+
+  replaceSection(
+    doc: WebsiteDocumentV3,
+    pageId: string,
+    sectionId: string,
+    targetVariant: string,
+    targetSectionType?: SectionType,
+    preserveContent: boolean = true,
+  ): WebsiteNode {
+    const page = this.findPage(doc, pageId);
+    const search = this.findNodeAndParent(page.root, sectionId);
+    if (!search || !search.parent) {
+      throw new NotFoundException(`Section "${sectionId}" not found in page "${pageId}"`);
+    }
+
+    if (search.node.locked) {
+      throw new BadRequestException(`Section "${sectionId}" is locked and cannot be replaced`);
+    }
+
+    const currentSection = search.node;
+    const sectionType =
+      targetSectionType ||
+      (currentSection.props?.sectionType as SectionType) ||
+      'features';
+
+    // Extract compatible content from current section if preserveContent is true
+    const extractedContent = preserveContent ? this.extractContentFromSubtree(currentSection) : null;
+
+    // Create new section structure based on variant
+    const newSection = createSectionVariantStructure(sectionType, targetVariant, sectionId);
+
+    // If preserving content, map extracted elements into corresponding slots
+    if (extractedContent) {
+      this.hydrateSectionContent(newSection, extractedContent);
+    }
+
+    // Preserve original anchorId and custom name
+    if (currentSection.props?.anchorId) {
+      newSection.props = { ...newSection.props, anchorId: currentSection.props.anchorId };
+    }
+    if (currentSection.name && !currentSection.name.startsWith('Section')) {
+      newSection.name = currentSection.name;
+    }
+
+    // Replace in parent's children array
+    search.parent.children![search.index] = newSection;
+    return newSection;
+  }
+
+  extractContentFromSubtree(root: WebsiteNode): {
+    headings: Array<{ text: string; level?: number }>;
+    paragraphs: Array<{ text: string }>;
+    images: Array<{ src: string; alt?: string; mediaId?: string }>;
+    buttons: Array<{ label: string; href?: string; variant?: string }>;
+    badges: Array<{ text: string }>;
+  } {
+    const headings: Array<{ text: string; level?: number }> = [];
+    const paragraphs: Array<{ text: string }> = [];
+    const images: Array<{ src: string; alt?: string; mediaId?: string }> = [];
+    const buttons: Array<{ label: string; href?: string; variant?: string }> = [];
+    const badges: Array<{ text: string }> = [];
+
+    const walk = (node: WebsiteNode) => {
+      if (node.type === 'heading' && node.props?.text) {
+        headings.push({ text: String(node.props.text), level: Number(node.props.level) || 2 });
+      } else if ((node.type === 'paragraph' || node.type === 'text') && node.props?.text) {
+        paragraphs.push({ text: String(node.props.text) });
+      } else if (node.type === 'image' && node.props?.src) {
+        images.push({
+          src: String(node.props.src),
+          alt: node.props.alt ? String(node.props.alt) : undefined,
+          mediaId: node.props.mediaId ? String(node.props.mediaId) : undefined,
+        });
+      } else if (node.type === 'button' && (node.props?.label || node.props?.text)) {
+        buttons.push({
+          label: String(node.props.label || node.props.text),
+          href: node.props.href ? String(node.props.href) : undefined,
+          variant: node.props.variant ? String(node.props.variant) : undefined,
+        });
+      } else if (node.type === 'badge' && node.props?.text) {
+        badges.push({ text: String(node.props.text) });
+      }
+
+      if (node.children) {
+        for (const child of node.children) {
+          walk(child);
+        }
+      }
+    };
+
+    walk(root);
+    return { headings, paragraphs, images, buttons, badges };
+  }
+
+  hydrateSectionContent(
+    newSection: WebsiteNode,
+    content: {
+      headings: Array<{ text: string; level?: number }>;
+      paragraphs: Array<{ text: string }>;
+      images: Array<{ src: string; alt?: string; mediaId?: string }>;
+      buttons: Array<{ label: string; href?: string; variant?: string }>;
+      badges: Array<{ text: string }>;
+    },
+  ): void {
+    let hIdx = 0;
+    let pIdx = 0;
+    let imgIdx = 0;
+    let btnIdx = 0;
+    let badgeIdx = 0;
+
+    const walk = (node: WebsiteNode) => {
+      if (node.type === 'heading' && hIdx < content.headings.length) {
+        node.props = { ...node.props, text: content.headings[hIdx].text };
+        if (content.headings[hIdx].level) {
+          node.props.level = content.headings[hIdx].level;
+        }
+        hIdx++;
+      } else if ((node.type === 'paragraph' || node.type === 'text') && pIdx < content.paragraphs.length) {
+        node.props = { ...node.props, text: content.paragraphs[pIdx].text };
+        pIdx++;
+      } else if (node.type === 'image' && imgIdx < content.images.length) {
+        node.props = {
+          ...node.props,
+          src: content.images[imgIdx].src,
+          alt: content.images[imgIdx].alt ?? node.props?.alt,
+          mediaId: content.images[imgIdx].mediaId ?? node.props?.mediaId,
+        };
+        imgIdx++;
+      } else if (node.type === 'button' && btnIdx < content.buttons.length) {
+        node.props = {
+          ...node.props,
+          label: content.buttons[btnIdx].label,
+          href: content.buttons[btnIdx].href ?? node.props?.href,
+          variant: content.buttons[btnIdx].variant ?? node.props?.variant,
+        };
+        btnIdx++;
+      } else if (node.type === 'badge' && badgeIdx < content.badges.length) {
+        node.props = { ...node.props, text: content.badges[badgeIdx].text };
+        badgeIdx++;
+      }
+
+      if (node.children) {
+        for (const child of node.children) {
+          walk(child);
+        }
+      }
+    };
+
+    walk(newSection);
   }
 
   setVisibility(
@@ -564,12 +1008,7 @@ export class TreeOperationsService {
     visibility: WebsiteNode['visibility'],
   ): void {
     const page = this.findPage(doc, pageId);
-    const node = this.findNode(page.root, nodeId);
-    if (!node) {
-      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
-    this.assertUnlocked(node, 'updated');
-
+    const node = this.ensureNodeUnlocked(page, nodeId);
     node.visibility = { ...node.visibility, ...visibility };
   }
 
@@ -581,10 +1020,8 @@ export class TreeOperationsService {
     index?: number,
   ): void {
     const page = this.findPage(doc, pageId);
-    const targetParent = this.findNode(page.root, newParentId);
-    if (!targetParent) {
-      throw new NotFoundException(`Target parent "${newParentId}" not found`);
-    }
+    this.ensureNodeUnlocked(page, nodeId);
+    const targetParent = this.ensureNodeUnlocked(page, newParentId);
     const targetIndex =
       typeof index === 'number' ? index : targetParent.children?.length ?? 0;
     this.moveNode(doc, pageId, nodeId, newParentId, targetIndex);
@@ -597,13 +1034,7 @@ export class TreeOperationsService {
     childIds: string[],
   ): void {
     const page = this.findPage(doc, pageId);
-    const parent = this.findNode(page.root, parentId);
-
-    if (!parent) {
-      throw new NotFoundException(`Parent node "${parentId}" not found`);
-    }
-    this.assertUnlocked(parent, 'have children reordered');
-    this.assertUnlocked(parent, 'have children reordered');
+    const parent = this.ensureNodeUnlocked(page, parentId);
 
     if (!parent.children || parent.children.length === 0) {
       return;
@@ -662,45 +1093,7 @@ export class TreeOperationsService {
     return page;
   }
 
-  pasteNode(
-    doc: WebsiteDocumentV3,
-    pageId: string,
-    parentId: string,
-    node: WebsiteNode,
-    index?: number,
-  ): WebsiteNode {
-    const cloned = this.cloneSubtreeWithNewIds(node, { suffixName: false });
-    this.addNode(doc, pageId, parentId, cloned, index);
-    return cloned;
-  }
 
-  resetResponsive(
-    doc: WebsiteDocumentV3,
-    pageId: string,
-    nodeId: string,
-    breakpoint?: 'desktop' | 'tablet' | 'mobile',
-  ): void {
-    const page = this.findPage(doc, pageId);
-    const node = this.findNode(page.root, nodeId);
-    if (!node) {
-      throw new NotFoundException(`Node "${nodeId}" not found in page "${pageId}"`);
-    }
-    this.assertUnlocked(node, 'updated');
-    if (!breakpoint) {
-      delete node.responsive;
-      return;
-    }
-    if (!node.responsive) return;
-    delete node.responsive[breakpoint];
-    if (
-      !node.responsive.desktop &&
-      !node.responsive.tablet &&
-      !node.responsive.mobile &&
-      !node.responsive.custom
-    ) {
-      delete node.responsive;
-    }
-  }
 
   insertPreset(
     doc: WebsiteDocumentV3,
@@ -864,6 +1257,42 @@ export class TreeOperationsService {
   }
 
   // ─── UTILITY TRAVERSAL METHODS ──────────────────────────────────────────────
+
+  findNodeAndAncestors(
+    root: WebsiteNode,
+    id: string,
+    ancestors: WebsiteNode[] = [],
+  ): { node: WebsiteNode; ancestors: WebsiteNode[] } | null {
+    if (root.id === id) {
+      return { node: root, ancestors };
+    }
+    if (root.children) {
+      for (const child of root.children) {
+        const found = this.findNodeAndAncestors(child, id, [...ancestors, root]);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  ensureNodeUnlocked(page: PageDocumentV3, nodeId: string): WebsiteNode {
+    const search = this.findNodeAndAncestors(page.root, nodeId);
+    if (!search) {
+      throw new NotFoundException(`Node "${nodeId}" not found in page "${page.id}"`);
+    }
+    const { node, ancestors } = search;
+    if (node.locked) {
+      throw new BadRequestException(`Node "${nodeId}" is locked and cannot be modified`);
+    }
+    for (const ancestor of ancestors) {
+      if (ancestor.locked) {
+        throw new BadRequestException(
+          `Node "${nodeId}" cannot be modified because its parent/ancestor "${ancestor.id}" is locked`,
+        );
+      }
+    }
+    return node;
+  }
 
   findPage(doc: WebsiteDocumentV3, pageId: string): PageDocumentV3 {
     const page = doc.pages.find((p) => p.id === pageId);

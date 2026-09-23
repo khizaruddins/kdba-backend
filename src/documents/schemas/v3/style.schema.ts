@@ -4,9 +4,10 @@ import { coerceCssLengthInput, coerceIncomingTheme } from '../../services/live-c
 // ─── SAFE STRING & NUMBER HELPERS ─────────────────────────────────────────────
 
 const safeCssValue = z
-  .string()
-  .trim()
-  .max(100)
+  .union([
+    z.string().trim().max(100),
+    z.number().transform((n) => `${n}px`),
+  ])
   .refine(
     (val) =>
       !/javascript\s*:|expression\s*\(|url\s*\(|<script|@import/i.test(val),
@@ -206,6 +207,12 @@ export const StyleDefinitionSchema = z.object({
       size: safeCssValue.optional(),
       repeat: z.enum(['no-repeat', 'repeat', 'repeat-x', 'repeat-y']).optional(),
       opacity: z.number().min(0).max(1).optional(),
+      overlay: z
+        .object({
+          color: safeColor.optional(),
+          opacity: z.number().min(0).max(1).optional(),
+        })
+        .optional(),
     })
     .optional(),
 
@@ -355,12 +362,12 @@ export const ThemeSystemV3ObjectSchema = z.object({
     tablet: 768,
     mobile: 480,
   }),
-  borderRadius: z.enum(['none', 'sm', 'md', 'lg', 'full']).default('md'),
-  shadows: z.enum(['none', 'subtle', 'medium', 'dramatic']).default('subtle'),
+  borderRadius: z.enum(['none', 'sm', 'md', 'lg', 'full']).or(safeCssValue).default('md'),
+  shadows: z.enum(['none', 'subtle', 'medium', 'dramatic']).or(safeCssValue).default('subtle'),
   headingFont: safeCssValue.optional(),
   bodyFont: safeCssValue.optional(),
   tokens: ThemeComponentTokensSchema.optional(),
-  customCss: z.string().max(50000).optional(),
+  customCss: z.string().max(50000).nullable().optional(),
 });
 
 export const ThemeSystemV3Schema = z.preprocess(coerceIncomingTheme, ThemeSystemV3ObjectSchema);

@@ -17,16 +17,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let message = 'Internal server error';
     let code = 'INTERNAL_ERROR';
 
+    let errors: unknown = undefined;
+
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object') {
+      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         const res = exceptionResponse as Record<string, unknown>;
         message = (res.message as string) || exception.message;
         code = (res.code as string) || this.getCodeFromStatus(status);
+        errors = res.errors || res.details;
 
         // Handle class-validator errors
         if (Array.isArray(res.message)) {
@@ -59,6 +62,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       success: false,
       code,
       message,
+      ...(errors !== undefined ? { errors } : {}),
       ...(process.env.NODE_ENV === 'development' && exception instanceof Error
         ? { stack: exception.stack }
         : {}),

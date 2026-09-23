@@ -211,11 +211,11 @@ export interface ThemeTokens {
 export interface ThemeConfigV3 extends ThemeConfig, ThemeTokens {}
 
 export interface SiteMetadataV3 {
-  id?: string;
+  id?: string | null;
   name: string;
   businessType: string;
   language: string;
-  favicon?: string;
+  favicon?: string | null;
   settings?: SiteSettings;
 }
 
